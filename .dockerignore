@@ -1,0 +1,9 @@
+# Ignore compilation artifacts
+bin/
+obj/
+
+# Ignore local runtimes and screenshots
+temp_screenshots/
+.playwright/
+.vs/
+.vscode/

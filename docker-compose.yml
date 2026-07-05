@@ -6,7 +6,7 @@ services:
     container_name: playwright-csharp-scraper
     restart: unless-stopped
     ports:
-      - "8430:8080"
+      - "8428:8080"
     volumes:
       - ./temp_screenshots:/app/temp_screenshots
     environment:

@@ -135,7 +135,7 @@ The microservice automates browser interaction and extracts structured data from
     ]
   }
   ```
-* *Note:* You can render the screenshots in real-time in any UI by requesting `http://localhost:8430/screenshots/{jobId}/step_{stepNumber}.png`.
+* *Note:* You can render the screenshots in real-time in any UI by requesting `http://localhost:8428/screenshots/{jobId}/step_{stepNumber}.png`.
 
 ### 5. Stop/Cancel Job
 * **Endpoint:** `POST /api/scrape/stop/{jobId}`
@@ -168,7 +168,7 @@ The microservice automates browser interaction and extracts structured data from
    ```
 
 ### Docker
-1. Start the service via Docker Compose (maps port `8430`):
+1. Start the service via Docker Compose (maps port `8428`):
    ```bash
    docker compose up --build -d
    ```
