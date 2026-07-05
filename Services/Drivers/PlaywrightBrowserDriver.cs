@@ -45,6 +45,14 @@ public class PlaywrightBrowserDriver : IExecutionDriver
             AcceptDownloads = false
         });
 
+        _context.Page += (sender, newPage) =>
+        {
+            _logger.LogInformation("Job {JobId}: New tab/page detected. Switching focus.", jobId);
+            _page = newPage;
+            _page.SetDefaultTimeout(15000);
+            _page.SetDefaultNavigationTimeout(20000);
+        };
+
         _page = await _context.NewPageAsync();
         
         // Add default timeout
