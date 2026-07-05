@@ -21,7 +21,9 @@ public class VisualCoordinateAgent : IInnerLoopAgent
         IExecutionDriver driver, 
         LlmClient llmClient, 
         string modelName, 
-        string historySummary)
+        string historySummary,
+        string? customBaseUrl = null,
+        string? customApiKey = null)
     {
         _logger.LogInformation("VisualCoordinateAgent deciding next action for step {StepNumber}", stepNumber);
 
@@ -82,8 +84,7 @@ History of Actions Taken So Far:
 
 Look at the screenshot and history, reason about where to click or what to do next, and respond with your action.";
 
-        // 4. Query Vision LLM
-        var rawResponse = await llmClient.GetVisionCompletionAsync(systemPrompt, userPrompt, base64Image, modelName, forceJson: true);
+        var rawResponse = await llmClient.GetVisionCompletionAsync(systemPrompt, userPrompt, base64Image, modelName, customBaseUrl, customApiKey, forceJson: true);
         
         _logger.LogDebug("Vision LLM response for step {Step}: {Response}", stepNumber, rawResponse);
 

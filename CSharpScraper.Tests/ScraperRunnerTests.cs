@@ -159,6 +159,8 @@ public class ScraperRunnerTests
             It.IsAny<IExecutionDriver>(),
             It.IsAny<LlmClient>(),
             It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
             It.IsAny<string>()
         )).ReturnsAsync(mockAgentStep);
 

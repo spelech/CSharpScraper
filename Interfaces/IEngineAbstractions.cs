@@ -28,6 +28,8 @@ public interface IInnerLoopAgent
         IExecutionDriver driver, 
         LlmClient llmClient, 
         string modelName, 
-        string historySummary
+        string historySummary,
+        string? customBaseUrl = null,
+        string? customApiKey = null
     );
 }

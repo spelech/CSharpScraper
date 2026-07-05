@@ -21,7 +21,9 @@ public class DomSelectorAgent : IInnerLoopAgent
         IExecutionDriver driver, 
         LlmClient llmClient, 
         string modelName, 
-        string historySummary)
+        string historySummary,
+        string? customBaseUrl = null,
+        string? customApiKey = null)
     {
         _logger.LogInformation("DomSelectorAgent deciding next action for step {StepNumber}", stepNumber);
 
@@ -110,8 +112,7 @@ Current Page Elements:
 
 Reason about the current page, look at your history and goal, and decide the next action.";
 
-        // 4. Query LLM
-        var rawResponse = await llmClient.GetCompletionAsync(systemPrompt, userPrompt, modelName, forceJson: true);
+        var rawResponse = await llmClient.GetCompletionAsync(systemPrompt, userPrompt, modelName, customBaseUrl, customApiKey, forceJson: true);
         
         _logger.LogDebug("LLM response for step {Step}: {Response}", stepNumber, rawResponse);
 

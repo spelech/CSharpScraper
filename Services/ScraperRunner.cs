@@ -119,7 +119,9 @@ public class ScraperRunner
                     driver, 
                     _llmClient, 
                     innerModel, 
-                    historySummary.ToString()
+                    historySummary.ToString(),
+                    request.BaseUrl,
+                    request.ApiKey
                 );
 
                 _logger.LogInformation("Job {JobId}: Step {Step} Action: {Action}", job.JobId, step, stepLog.Action);
