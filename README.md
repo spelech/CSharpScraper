@@ -8,38 +8,14 @@ The microservice automates browser interaction and extracts structured data from
 
 ## 🏗️ Architecture
 
-```
-                       +-------------------+
-                       |    Client API     |
-                       +---------+---------+
-                                 |  (Start/Compare/Stop)
-                                 v
-                       +---------+---------+
-                       | ScraperJobService |
-                       +---------+---------+
-                                 |  (Spawns Background Task)
-                                 v
-                       +---------+---------+
-                       |   ScraperRunner   |
-                       +---------+---------+
-                                 |  (Single execution loop)
-                                 v
-                       +---------+---------+
-                       |   Agent Actor     | <---+
-                       | (Dom/Coordinate)  |     |
-                       +---------+---------+     | (Loops until goal
-                                 |               |  achieved or fail)
-                                 | (Decides action)
-                                 v               |
-                       +---------+---------+     |
-                       |  IExecutionDriver | ----+
-                       | (Playwright/Host) |
-                       +---------+---------+
-                                 |
-                                 v
-                       +---------+---------+
-                       |  Target Page/DOM  |
-                       +-------------------+
+```mermaid
+graph TD
+    ClientAPI[Client API] -->|Start/Compare/Stop| ScraperJobService[ScraperJobService]
+    ScraperJobService -->|Spawns Background Task| ScraperRunner[ScraperRunner]
+    ScraperRunner -->|Single execution loop| AgentActor[Agent Actor <br> DomSelectorAgent / VisualCoordinateAgent]
+    AgentActor -->|Decides browser action| IExecutionDriver[IExecutionDriver <br> Playwright / Host]
+    IExecutionDriver -->|Interacts with| TargetPage[Target Page / DOM]
+    IExecutionDriver -->|Returns page state & screenshots| AgentActor
 ```
 
 ### Key Components
