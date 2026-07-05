@@ -1,0 +1,25 @@
+services:
+  playwright-csharp-scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: playwright-csharp-scraper
+    restart: unless-stopped
+    ports:
+      - "8430:8080"
+    volumes:
+      - ./temp_screenshots:/app/temp_screenshots
+    environment:
+      - TZ=America/Chicago
+      - DEFAULT_LLM_BASE_URL=http://litellm:4000/v1
+      - DEFAULT_LLM_API_KEY=sk-placeholder
+      - DEFAULT_LLM_MODEL=gemini-3.5-flash
+    networks:
+      - net_webservices
+    ipc: host # Important for Chromium sandbox inside Docker to prevent out-of-memory crashes
+    security_opt:
+      - seccomp=unconfined # Optional: helps Chromium sandbox run in container without root privilege issues
+
+networks:
+  net_webservices:
+    external: true

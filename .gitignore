@@ -1,0 +1,12 @@
+# Build outputs
+bin/
+obj/
+
+# Local screenshots and cache
+temp_screenshots/
+.playwright/
+
+# User secrets and development configurations
+appsettings.Development.json
+.vs/
+.vscode/
