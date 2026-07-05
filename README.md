@@ -2,7 +2,7 @@
 
 A standalone, containerized, REST-API-driven web scraper microservice written in C# targeting **.NET 10**. 
 
-The microservice automates browser interaction and extracts structured data from dynamic websites using a **Dual-Loop Agentic Architecture**. It separates high-level planning (Outer Loop) from low-level execution (Inner Loop), and decouples the execution driver (Playwright vs. Desktop) from the reasoning agent (DOM-based vs. Coordinate-based).
+The microservice automates browser interaction and extracts structured data from dynamic websites using a **Single-Loop Agentic Architecture**. It leverages Playwright for headless automation and LLM completions to decide real-time browser actions (clicking, typing, scrolling, waiting) to accomplish a user's goal.
 
 ---
 
@@ -12,7 +12,7 @@ The microservice automates browser interaction and extracts structured data from
                        +-------------------+
                        |    Client API     |
                        +---------+---------+
-                                 |  (Start/Check/Stop)
+                                 |  (Start/Compare/Stop)
                                  v
                        +---------+---------+
                        | ScraperJobService |
@@ -21,51 +21,47 @@ The microservice automates browser interaction and extracts structured data from
                                  v
                        +---------+---------+
                        |   ScraperRunner   |
-                       +----+---------+----+
-                            |         |
-      +---------------------+         +---------------------+
-      | (Overall Goal)                                      | (Sub-Goal Instructions)
-      v                                                     v
-+-----+---------------+                               +-----+---------------+
-|     Outer Loop      |                               |     Inner Loop      |
-|  (Reasoning Model)  |<==============================|    (Agent Actor)    |
-|  gemini-3.5-flash   |     (History of Steps)        |   claude-5-sonnet   |
-+---------------------+                               +----------+----------+
-                                                                 |
-                                                                 | (Decided Action)
-                                                                 v
-                                                      +----------+----------+
-                                                      |  IExecutionDriver   |
-                                                      |  (Playwright/Host)  |
-                                                      +----------+----------+
-                                                                 |
-                                                                 v
-                                                      +----------+----------+
-                                                      |  Target Page/DOM    |
-                                                      +---------------------+
+                       +---------+---------+
+                                 |  (Single execution loop)
+                                 v
+                       +---------+---------+
+                       |   Agent Actor     | <---+
+                       | (Dom/Coordinate)  |     |
+                       +---------+---------+     | (Loops until goal
+                                 |               |  achieved or fail)
+                                 | (Decides action)
+                                 v               |
+                       +---------+---------+     |
+                       |  IExecutionDriver | ----+
+                       | (Playwright/Host) |
+                       +---------+---------+
+                                 |
+                                 v
+                       +---------+---------+
+                       |  Target Page/DOM  |
+                       +-------------------+
 ```
 
-### Abstractions
+### Key Components
 1. **`IExecutionDriver`**: Defines the interface for interacting with the environment (clicking, typing, scrolling, taking screenshots).
-   * `PlaywrightBrowserDriver` (Default): Container-isolated headless Chromium browser.
-   * `DesktopSystemDriver` (Future): Desktop coordinate automation.
-2. **`IInnerLoopAgent`**: Defines how the agent decides actions based on observations.
-   * `DomSelectorAgent` (Default): Operates on simplified XML representation of visible page elements with unique `pg-id`s. Highly reliable and token-efficient.
+   * `PlaywrightBrowserDriver` (Default): Container-isolated headless Chromium browser connected over CDP.
+2. **`IInnerLoopAgent`**: Represents the decision-making brain of the crawler.
+   * `DomSelectorAgent` (Default): Evaluates a simplified XML representation of visible page elements with unique `pg-id`s. Highly reliable and token-efficient.
    * `VisualCoordinateAgent`: Operates on raw screenshots and predicts precise pixel coordinates `(x, y)` to click or interact with.
+3. **`SearxngClient`**: Direct integration with the local SearXNG service to perform dynamic product/store URL discovery.
 
 ---
 
 ## 🚦 API Endpoints
 
-### 1. Start Scraping Job
+### 1. Start Single Scrape Job
 * **Endpoint:** `POST /api/scrape/start`
 * **Body:**
   ```json
   {
     "url": "https://news.ycombinator.com",
     "goal": "Extract the top 5 article titles and points",
-    "outerModel": "gemini-3.5-flash",
-    "innerModel": "claude-5-sonnet",
+    "model": "gemini-2.5-flash",
     "maxSteps": 10,
     "driverType": "playwright",
     "agentType": "dom"
@@ -80,71 +76,39 @@ The microservice automates browser interaction and extracts structured data from
   }
   ```
 
-### 2. Check Job Status
-* **Endpoint:** `GET /api/scrape/status/{jobId}`
-* **Response:**
+### 2. Check Job Status & Result
+* **Status Endpoint:** `GET /api/scrape/status/{jobId}`
+* **Result Endpoint:** `GET /api/scrape/result/{jobId}`
+* **Logs & Screenshots:** `GET /api/scrape/logs/{jobId}`
+  * *Note:* You can render the screenshots in real-time in any UI by requesting `http://localhost:8428/screenshots/{jobId}/step_{stepNumber}.png`.
+
+### 3. Parallel Comparison (Explicit URLs)
+Spawns concurrent scraper runs for a set of known URLs, running them simultaneously in isolated browser contexts.
+* **Endpoint:** `POST /api/scrape/compare[?sync=true]`
+* **Body:**
   ```json
   {
-    "jobId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "url": "https://news.ycombinator.com",
-    "goal": "Extract the top 5 article titles and points",
-    "status": "Running",
-    "currentStep": 3,
-    "maxSteps": 10,
-    "lastAction": "Clicking element '[data-pg-id=\'12\']'",
-    "startedAt": "2026-07-04T21:00:00Z",
-    "completedAt": null,
-    "error": null
+    "urls": [
+      "https://www.target.com/p/huy-fong-sriracha-hot-chili-sauce-17oz/-/A-13473417",
+      "https://www.meijer.com/shopping/product/huy-fong-sriracha-chili-sauce-17-oz/3989610189.html"
+    ],
+    "goal": "Find and extract the product name, price, and store availability.",
+    "model": "gemini-2.5-flash",
+    "maxSteps": 5
   }
   ```
+* **Query Params:** `sync=true` blocks the HTTP request and returns the compiled price comparison grid once all jobs finish. Leaving it out returns immediately with a `compareId`.
 
-### 3. Get Scraped Result
-* **Endpoint:** `GET /api/scrape/result/{jobId}`
-* **Response:**
+### 4. Dynamic Auto-Discovery & Compare
+The orchestrator uses the LLM to analyze your product query and location, determines the best search query and retailer domains (e.g. grocery domains for foods, electronics domains for headphones), searches SearXNG, spawns parallel crawls, and aggregates results.
+* **Endpoint:** `POST /api/scrape/discover-compare[?sync=true]`
+* **Body:**
   ```json
   {
-    "jobId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "status": "Completed",
-    "data": {
-      "articles": [
-        { "title": "Example Link A", "points": 120 },
-        { "title": "Example Link B", "points": 85 }
-      ]
-    },
-    "error": null
-  }
-  ```
-
-### 4. Get Step Logs & Screenshots
-* **Endpoint:** `GET /api/scrape/logs/{jobId}`
-* **Response:**
-  ```json
-  {
-    "jobId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "logs": [
-      {
-        "timestamp": "2026-07-04T21:00:05Z",
-        "stepNumber": 1,
-        "thought": "We need to find the links on the main page. Let's inspect the page content.",
-        "action": {
-          "type": "click_selector",
-          "selector": "[data-pg-id='4']"
-        },
-        "screenshotPath": "/screenshots/3fa85f64-5717-4562-b3fc-2c963f66afa6/step_01.png"
-      }
-    ]
-  }
-  ```
-* *Note:* You can render the screenshots in real-time in any UI by requesting `http://localhost:8428/screenshots/{jobId}/step_{stepNumber}.png`.
-
-### 5. Stop/Cancel Job
-* **Endpoint:** `POST /api/scrape/stop/{jobId}`
-* **Response:**
-  ```json
-  {
-    "jobId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "status": "Stopped",
-    "message": "Job cancellation request sent."
+    "query": "Huy Fong Sriracha 17oz",
+    "location": "Schaumburg, IL",
+    "model": "gemini-2.5-flash",
+    "maxSteps": 5
   }
   ```
 
@@ -168,14 +132,7 @@ The microservice automates browser interaction and extracts structured data from
    ```
 
 ### Docker
-1. Start the service via Docker Compose (maps port `8428`):
-   ```bash
-   docker compose up --build -d
-   ```
-
----
-
-## 🚀 CI/CD Pipeline
-GitHub Actions are configured in `.github/workflows/docker-publish.yml`. When code is pushed/merged to the `main` branch, the container image is compiled and pushed to GitHub Container Registry (`ghcr.io`).
-
-**Branching Strategy:** To reduce GitHub Actions billing time, all feature development takes place on dedicated feature branches (e.g. `feature/playwright-csharp-scraper`) and is only merged into `main` upon explicit user sign-off.
+Start the service via Docker Compose (maps port `8428`):
+```bash
+docker compose up --build -d
+```
