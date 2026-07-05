@@ -15,6 +15,7 @@ builder.Logging.AddDebug();
 
 // Add services
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<SearxngClient>();
 builder.Services.AddSingleton<ScraperJobService>();
 builder.Services.AddScoped<ScraperRunner>();
 builder.Services.AddSingleton<LlmClient>();
@@ -156,6 +157,80 @@ app.MapPost("/api/scrape/compare", async ([FromBody] ScrapeCompareRequest reques
     {
         CompareId = compareId,
         Goal = request.Goal,
+        Jobs = summaries
+    });
+});
+
+app.MapPost("/api/scrape/discover-compare", async ([FromBody] ScrapeDiscoverCompareRequest request, [FromServices] ScraperJobService jobService, [FromQuery] bool? sync, ILogger<Program> logger) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Query))
+    {
+        return Results.BadRequest(new { error = "Query is required." });
+    }
+
+    // Model validation
+    if (!string.IsNullOrWhiteSpace(request.Model) && !supportedModels.Contains(request.Model))
+    {
+        logger.LogWarning("Requested Model '{Model}' is not in the validated list. Proceeding anyway.", request.Model);
+    }
+
+    var (compareId, jobs) = await jobService.StartDiscoveryCompareJobsAsync(request);
+
+    if (jobs.Count == 0)
+    {
+        return Results.Ok(new CompareResultResponse
+        {
+            CompareId = compareId,
+            Goal = request.Query,
+            Status = "Failed",
+            Results = new List<JobResultResponse>()
+        });
+    }
+
+    if (sync == true)
+    {
+        logger.LogInformation("Blocking discovery comparative request {CompareId} awaiting parallel completion.", compareId);
+        
+        while (jobs.Any(j => j.Status == JobStatus.Queued || j.Status == JobStatus.Running))
+        {
+            await Task.Delay(500);
+        }
+
+        logger.LogInformation("Discovery comparative request {CompareId} parallel execution completed. Returning aggregated results.", compareId);
+
+        var results = jobs.Select(j => new JobResultResponse
+        {
+            JobId = j.JobId,
+            Status = j.Status.ToString(),
+            Data = j.ExtractedData,
+            Error = j.Error,
+            TotalPromptTokens = j.TotalPromptTokens,
+            TotalCompletionTokens = j.TotalCompletionTokens
+        }).ToList();
+
+        return Results.Ok(new CompareResultResponse
+        {
+            CompareId = compareId,
+            Goal = request.Query,
+            Status = jobs.All(j => j.Status == JobStatus.Completed) 
+                ? "Completed" 
+                : jobs.Any(j => j.Status == JobStatus.Failed) ? "Failed" : "Stopped",
+            Results = results
+        });
+    }
+
+    // Asynchronous response
+    var summaries = jobs.Select(j => new CompareJobSummary
+    {
+        Url = j.Url,
+        JobId = j.JobId,
+        Status = j.Status.ToString()
+    }).ToList();
+
+    return Results.Accepted($"/api/scrape/compare/status/{compareId}", new CompareStartResponse
+    {
+        CompareId = compareId,
+        Goal = request.Query,
         Jobs = summaries
     });
 });

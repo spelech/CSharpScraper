@@ -178,3 +178,21 @@ public class CompareResultResponse
     public string Status { get; set; } = string.Empty;
     public List<JobResultResponse> Results { get; set; } = new();
 }
+
+public class ScrapeDiscoverCompareRequest
+{
+    public required string Query { get; set; }
+    public string? Location { get; set; }
+    public string? Model { get; set; }
+    public string? BaseUrl { get; set; }
+    public string? ApiKey { get; set; }
+    public int MaxSteps { get; set; } = 6;
+    public string DriverType { get; set; } = "playwright";
+    public string AgentType { get; set; } = "dom";
+}
+
+public class DiscoveryRouting
+{
+    public string OptimizedSearchQuery { get; set; } = string.Empty;
+    public List<string> TargetDomains { get; set; } = new();
+}
