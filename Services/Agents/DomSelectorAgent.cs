@@ -27,23 +27,34 @@ public class DomSelectorAgent : IInnerLoopAgent
     {
         _logger.LogInformation("DomSelectorAgent deciding next action for step {StepNumber}", stepNumber);
 
-        // 1. Gather page state
-        var url = await driver.GetUrlAsync();
-        var title = await driver.GetTitleAsync();
-        var htmlContent = await driver.GetPageContentAsync();
+        // 1. Gather page state & parse elements with retry if context destroyed
+        string url = "";
+        string title = "";
+        string htmlContent = "";
+        string elementsJson = "[]";
 
-        // 2. Parse elements using JS script
-        string elementsJson;
-        if (driver is Drivers.PlaywrightBrowserDriver playwrightDriver)
+        int retries = 3;
+        while (retries > 0)
         {
-            // Direct script evaluation
-            // Execute parse script
-            elementsJson = await GetElementsJsonFromBrowser(driver);
-        }
-        else
-        {
-            // Standard fallback (though we expect Playwright for DomSelector)
-            elementsJson = "[]";
+            try
+            {
+                url = await driver.GetUrlAsync();
+                title = await driver.GetTitleAsync();
+                htmlContent = await driver.GetPageContentAsync();
+
+                if (driver is Drivers.PlaywrightBrowserDriver)
+                {
+                    elementsJson = await GetElementsJsonFromBrowser(driver);
+                }
+                break;
+            }
+            catch (Exception ex) when (ex.Message.Contains("context was destroyed") || ex.Message.Contains("navigation") || ex.Message.Contains("context destroyed"))
+            {
+                retries--;
+                if (retries == 0) throw;
+                _logger.LogWarning("Execution context destroyed during state gathering. Retrying in 1s...");
+                await driver.WaitAsync(1000);
+            }
         }
 
         List<DomParser.ElementInfo> elements;

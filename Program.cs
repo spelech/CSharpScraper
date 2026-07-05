@@ -51,14 +51,9 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 // Supported models for validation/warnings
-var supportedOuterModels = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+var supportedModels = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 {
-    "gemini-3.5-flash", "gemini-3.5-pro", "gpt-4o-mini", "gpt-4o", "claude-3-haiku"
-};
-
-var supportedInnerModels = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-{
-    "claude-5-sonnet", "claude-3-5-sonnet", "gemini-3.5-pro", "gemini-3.5-flash", "gpt-4o-mini", "gpt-4o"
+    "gemini-3.5-flash", "gemini-3.5-pro", "gpt-4o-mini", "gpt-4o", "claude-3-5-sonnet", "claude-5-sonnet", "claude-3-haiku"
 };
 
 // Endpoints
@@ -81,14 +76,9 @@ app.MapPost("/api/scrape/start", ([FromBody] ScrapeRequest request, [FromService
     }
 
     // Model validation
-    if (!string.IsNullOrWhiteSpace(request.OuterModel) && !supportedOuterModels.Contains(request.OuterModel))
+    if (!string.IsNullOrWhiteSpace(request.Model) && !supportedModels.Contains(request.Model))
     {
-        logger.LogWarning("Requested OuterModel '{Model}' is not in the validated list. Proceeding anyway.", request.OuterModel);
-    }
-
-    if (!string.IsNullOrWhiteSpace(request.InnerModel) && !supportedInnerModels.Contains(request.InnerModel))
-    {
-        logger.LogWarning("Requested InnerModel '{Model}' is not in the validated list. Proceeding anyway.", request.InnerModel);
+        logger.LogWarning("Requested Model '{Model}' is not in the validated list. Proceeding anyway.", request.Model);
     }
 
     var job = jobService.StartJob(request);
@@ -98,6 +88,122 @@ app.MapPost("/api/scrape/start", ([FromBody] ScrapeRequest request, [FromService
         jobId = job.JobId, 
         status = job.Status.ToString(), 
         message = "Scraping job enqueued." 
+    });
+});
+
+app.MapPost("/api/scrape/compare", async ([FromBody] ScrapeCompareRequest request, [FromServices] ScraperJobService jobService, [FromQuery] bool? sync, ILogger<Program> logger) =>
+{
+    if (request.Urls == null || request.Urls.Count == 0)
+    {
+        return Results.BadRequest(new { error = "Urls list is required and cannot be empty." });
+    }
+
+    if (string.IsNullOrWhiteSpace(request.Goal))
+    {
+        return Results.BadRequest(new { error = "Goal is required." });
+    }
+
+    // Model validation
+    if (!string.IsNullOrWhiteSpace(request.Model) && !supportedModels.Contains(request.Model))
+    {
+        logger.LogWarning("Requested Model '{Model}' is not in the validated list. Proceeding anyway.", request.Model);
+    }
+
+    var (compareId, jobs) = jobService.StartCompareJobs(request);
+
+    if (sync == true)
+    {
+        // Block and wait for all jobs to finish
+        logger.LogInformation("Blocking comparative request {CompareId} awaiting parallel completion.", compareId);
+        
+        while (jobs.Any(j => j.Status == JobStatus.Queued || j.Status == JobStatus.Running))
+        {
+            await Task.Delay(500);
+        }
+
+        logger.LogInformation("Comparative request {CompareId} parallel execution completed. Returning aggregated results.", compareId);
+
+        var results = jobs.Select(j => new JobResultResponse
+        {
+            JobId = j.JobId,
+            Status = j.Status.ToString(),
+            Data = j.ExtractedData,
+            Error = j.Error,
+            TotalPromptTokens = j.TotalPromptTokens,
+            TotalCompletionTokens = j.TotalCompletionTokens
+        }).ToList();
+
+        return Results.Ok(new CompareResultResponse
+        {
+            CompareId = compareId,
+            Goal = request.Goal,
+            Status = jobs.All(j => j.Status == JobStatus.Completed) 
+                ? "Completed" 
+                : jobs.Any(j => j.Status == JobStatus.Failed) ? "Failed" : "Stopped",
+            Results = results
+        });
+    }
+
+    // Asynchronous response
+    var summaries = jobs.Select(j => new CompareJobSummary
+    {
+        Url = j.Url,
+        JobId = j.JobId,
+        Status = j.Status.ToString()
+    }).ToList();
+
+    return Results.Accepted($"/api/scrape/compare/status/{compareId}", new CompareStartResponse
+    {
+        CompareId = compareId,
+        Goal = request.Goal,
+        Jobs = summaries
+    });
+});
+
+app.MapGet("/api/scrape/compare/status/{compareId:guid}", (Guid compareId, [FromServices] ScraperJobService jobService) =>
+{
+    var group = jobService.GetCompareGroup(compareId);
+    if (group == null)
+    {
+        return Results.NotFound(new { error = $"Compare group {compareId} not found." });
+    }
+
+    var statuses = group.Value.Jobs.Select(j => new JobStatusResponse
+    {
+        JobId = j.JobId,
+        Url = j.Url,
+        Goal = j.Goal,
+        Status = j.Status.ToString(),
+        CurrentStep = j.CurrentStep,
+        MaxSteps = j.MaxSteps,
+        LastAction = j.LastAction,
+        StartedAt = j.StartedAt,
+        CompletedAt = j.CompletedAt,
+        Error = j.Error,
+        TotalPromptTokens = j.TotalPromptTokens,
+        TotalCompletionTokens = j.TotalCompletionTokens
+    }).ToList();
+
+    string groupStatus = "Completed";
+    if (group.Value.Jobs.Any(j => j.Status == JobStatus.Running || j.Status == JobStatus.Queued))
+    {
+        groupStatus = "Running";
+    }
+    else if (group.Value.Jobs.Any(j => j.Status == JobStatus.Failed))
+    {
+        groupStatus = "Failed";
+    }
+    else if (group.Value.Jobs.Any(j => j.Status == JobStatus.Stopped))
+    {
+        groupStatus = "Stopped";
+    }
+
+    return Results.Ok(new CompareStatusResponse
+    {
+        CompareId = compareId,
+        Goal = group.Value.Goal,
+        Status = groupStatus,
+        Jobs = statuses
     });
 });
 

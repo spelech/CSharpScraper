@@ -27,9 +27,26 @@ public class VisualCoordinateAgent : IInnerLoopAgent
     {
         _logger.LogInformation("VisualCoordinateAgent deciding next action for step {StepNumber}", stepNumber);
 
-        // 1. Gather page context details
-        var url = await driver.GetUrlAsync();
-        var title = await driver.GetTitleAsync();
+        // 1. Gather page context details with retry if context destroyed
+        string url = "";
+        string title = "";
+        int retries = 3;
+        while (retries > 0)
+        {
+            try
+            {
+                url = await driver.GetUrlAsync();
+                title = await driver.GetTitleAsync();
+                break;
+            }
+            catch (Exception ex) when (ex.Message.Contains("context was destroyed") || ex.Message.Contains("navigation") || ex.Message.Contains("context destroyed"))
+            {
+                retries--;
+                if (retries == 0) throw;
+                _logger.LogWarning("Execution context destroyed during state gathering. Retrying in 1s...");
+                await driver.WaitAsync(1000);
+            }
+        }
 
         // 2. Capture screenshot to a temp location and read it
         var tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "temp_screenshots");

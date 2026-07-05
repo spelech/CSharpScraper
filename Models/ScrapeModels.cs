@@ -7,8 +7,7 @@ public class ScrapeRequest
 {
     public required string Url { get; set; }
     public required string Goal { get; set; }
-    public string? OuterModel { get; set; }
-    public string? InnerModel { get; set; }
+    public string? Model { get; set; }
     public string? BaseUrl { get; set; }
     public string? ApiKey { get; set; }
     public int MaxSteps { get; set; } = 15;
@@ -136,4 +135,46 @@ public class JobLogsResponse
 {
     public Guid JobId { get; set; }
     public List<ScrapeStepLog> Logs { get; set; } = new();
+}
+
+public class ScrapeCompareRequest
+{
+    public required List<string> Urls { get; set; }
+    public required string Goal { get; set; }
+    public string? Model { get; set; }
+    public string? BaseUrl { get; set; }
+    public string? ApiKey { get; set; }
+    public int MaxSteps { get; set; } = 15;
+    public string DriverType { get; set; } = "playwright";
+    public string AgentType { get; set; } = "dom";
+}
+
+public class CompareJobSummary
+{
+    public string Url { get; set; } = string.Empty;
+    public Guid JobId { get; set; }
+    public string Status { get; set; } = string.Empty;
+}
+
+public class CompareStartResponse
+{
+    public Guid CompareId { get; set; }
+    public string Goal { get; set; } = string.Empty;
+    public List<CompareJobSummary> Jobs { get; set; } = new();
+}
+
+public class CompareStatusResponse
+{
+    public Guid CompareId { get; set; }
+    public string Goal { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty; // "Running", "Completed", "Failed"
+    public List<JobStatusResponse> Jobs { get; set; } = new();
+}
+
+public class CompareResultResponse
+{
+    public Guid CompareId { get; set; }
+    public string Goal { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public List<JobResultResponse> Results { get; set; } = new();
 }

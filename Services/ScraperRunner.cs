@@ -59,69 +59,25 @@ public class ScraperRunner
 
             var historySummary = new StringBuilder();
             
-            // Default models from request or env vars
-            var outerModel = request.OuterModel ?? "gemini-3.5-flash";
-            var innerModel = request.InnerModel ?? "claude-5-sonnet";
+            // Default model from request or env vars
+            var model = request.Model ?? "gemini-3.5-flash";
 
-            _logger.LogInformation("Job {JobId}: Using Outer Model={Outer}, Inner Model={Inner}", job.JobId, outerModel, innerModel);
+            _logger.LogInformation("Job {JobId}: Using Model={Model}", job.JobId, model);
 
             for (int step = 1; step <= job.MaxSteps; step++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 job.CurrentStep = step;
 
-                string currentSubGoal = job.Goal;
-
-                // --- DUAL-LOOP ARCHITECTURE: OUTER LOOP REASONING ---
-                // The Outer Loop acts as the "director", evaluates progress, and issues plans for the inner loop.
-                var (outerDecision, outerPromptTokens, outerCompletionTokens) = await RunOuterLoopReasoningAsync(
+                // --- SINGLE-LOOP EXECUTION ---
+                // The agent observes the page state, checks goal progression, and decides on a browser interaction or data extraction.
+                job.LastAction = $"Planning step {step}...";
+                var stepLog = await agent.DecideNextActionAsync(
                     job.Goal, 
                     step, 
                     driver, 
-                    outerModel, 
-                    request.BaseUrl, 
-                    request.ApiKey, 
-                    historySummary.ToString()
-                );
-
-                job.TotalPromptTokens += outerPromptTokens;
-                job.TotalCompletionTokens += outerCompletionTokens;
-
-                if (outerDecision.Status == "completed")
-                {
-                    _logger.LogInformation("Job {JobId}: Outer loop determined goal completed.", job.JobId);
-                    job.Status = JobStatus.Completed;
-                    job.ExtractedData = outerDecision.ExtractedData;
-                    job.LastAction = "Goal achieved. Data extracted.";
-                    break;
-                }
-                else if (outerDecision.Status == "failed")
-                {
-                    _logger.LogWarning("Job {JobId}: Outer loop declared failure. Reason: {Reason}", job.JobId, outerDecision.Reason);
-                    job.Status = JobStatus.Failed;
-                    job.Error = outerDecision.Reason ?? "Outer loop declared failure.";
-                    job.LastAction = $"Failed: {job.Error}";
-                    break;
-                }
-                else
-                {
-                    // Proceed with the sub-goal instructions issued by the outer loop
-                    if (!string.IsNullOrWhiteSpace(outerDecision.Instructions))
-                    {
-                        currentSubGoal = outerDecision.Instructions;
-                        _logger.LogInformation("Job {JobId}: Outer loop issued sub-goal: '{SubGoal}'", job.JobId, currentSubGoal);
-                    }
-                }
-
-                // --- INNER LOOP EXECUTION ---
-                // The Inner Loop agent observes the page state and decides on a low-level browser interaction.
-                job.LastAction = $"Planning step {step}...";
-                var stepLog = await agent.DecideNextActionAsync(
-                    currentSubGoal, 
-                    step, 
-                    driver, 
                     _llmClient, 
-                    innerModel, 
+                    model, 
                     historySummary.ToString(),
                     request.BaseUrl,
                     request.ApiKey
@@ -150,10 +106,9 @@ public class ScraperRunner
 
                 if (stepLog.Action.Type == "extract_data")
                 {
-                    _logger.LogInformation("Job {JobId}: Inner loop extracted data and completed.", job.JobId);
+                    _logger.LogInformation("Job {JobId}: Streamlined loop extracted data and completed.", job.JobId);
                     job.Status = JobStatus.Completed;
                     
-                    // Fallback in case outer loop didn't capture it yet
                     if (stepLog.Action.Data.HasValue)
                     {
                         job.ExtractedData = stepLog.Action.Data.Value;
@@ -162,7 +117,7 @@ public class ScraperRunner
                 }
                 else if (stepLog.Action.Type == "fail")
                 {
-                    _logger.LogWarning("Job {JobId}: Inner loop failed. Reason: {Reason}", job.JobId, stepLog.Action.Reason);
+                    _logger.LogWarning("Job {JobId}: Streamlined loop failed. Reason: {Reason}", job.JobId, stepLog.Action.Reason);
                     job.Status = JobStatus.Failed;
                     job.Error = stepLog.Action.Reason ?? "Inner loop failed.";
                     break;
@@ -197,63 +152,6 @@ public class ScraperRunner
         }
     }
 
-    private async Task<(OuterLoopDecision Decision, int PromptTokens, int CompletionTokens)> RunOuterLoopReasoningAsync(
-        string mainGoal, 
-        int stepNumber, 
-        IExecutionDriver driver, 
-        string modelName, 
-        string? customBaseUrl, 
-        string? customApiKey, 
-        string historySummary)
-    {
-        var url = await driver.GetUrlAsync();
-        var title = await driver.GetTitleAsync();
-
-        var systemPrompt = @"You are the Outer Loop Director for an autonomous web agent. Your job is to analyze what the agent has done so far, inspect the current page environment, and decide whether the overall goal is accomplished.
-
-If the goal is accomplished, output a completed status and extract the final structured data.
-If the agent is stuck or the goal has failed (e.g. CAPTCHAs, persistent errors, missing data), declare a failure.
-If the agent should continue, output a continue status and provide specific instructions / sub-goals for the next step (e.g., 'Find the search bar and input the product name', or 'Scroll down to check if there are more links').
-
-Provide your output in STRICT JSON format. No extra text before or after the JSON block.
-
-Expected JSON output format:
-{
-  ""status"": ""continue"", // ""continue"", ""completed"", or ""failed""
-  ""instructions"": ""Specific sub-goal instructions for the agent on this step."",
-  ""extractedData"": null, // Object containing final key-value data if completed (e.g. { ""price"": ""$10.00"", ""title"": ""Thing"" })
-  ""reason"": null // String explaining failure if status is failed
-}";
-
-        var userPrompt = $@"Goal: {mainGoal}
-Current Step: {stepNumber}
-Current URL: {url}
-Current Title: {title}
-
----
-History of Actions Taken So Far:
-{(string.IsNullOrWhiteSpace(historySummary) ? "None (this is the first step)." : historySummary)}
-
-Analyze the progress. Check if the goal is achieved. If not, what sub-goal should the inner loop agent work on next?";
-
-        try
-        {
-            var llmResponse = await _llmClient.GetCompletionAsync(systemPrompt, userPrompt, modelName, customBaseUrl, customApiKey, forceJson: true);
-            var rawResponse = llmResponse.Content;
-            var cleanJson = ExtractJsonBlock(rawResponse);
-            var decision = JsonSerializer.Deserialize<OuterLoopDecision>(cleanJson, new JsonSerializerOptions 
-            { 
-                PropertyNameCaseInsensitive = true 
-            });
-
-            return (decision ?? new OuterLoopDecision { Status = "continue", Instructions = mainGoal }, llmResponse.PromptTokens, llmResponse.CompletionTokens);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in outer loop reasoning. Proceeding directly with main goal.");
-            return (new OuterLoopDecision { Status = "continue", Instructions = mainGoal }, 0, 0);
-        }
-    }
 
     private async Task ExecuteActionAsync(IExecutionDriver driver, ScrapeAction action)
     {
@@ -311,11 +209,5 @@ Analyze the progress. Check if the goal is achieved. If not, what sub-goal shoul
         return text.Trim();
     }
 
-    private class OuterLoopDecision
-    {
-        public string Status { get; set; } = "continue"; // "continue", "completed", "failed"
-        public string? Instructions { get; set; }
-        public object? ExtractedData { get; set; }
-        public string? Reason { get; set; }
-    }
+
 }
