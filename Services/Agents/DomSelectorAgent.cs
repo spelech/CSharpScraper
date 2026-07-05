@@ -15,7 +15,7 @@ public class DomSelectorAgent : IInnerLoopAgent
         _logger = logger;
     }
 
-    public async Task<ScrapeStepLog> DecideNextActionAsync(
+    public virtual async Task<ScrapeStepLog> DecideNextActionAsync(
         string goal, 
         int stepNumber, 
         IExecutionDriver driver, 

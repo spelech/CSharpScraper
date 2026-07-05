@@ -23,7 +23,7 @@ public class LlmClient
         _logger = logger;
     }
 
-    public async Task<string> GetVisionCompletionAsync(
+    public virtual async Task<string> GetVisionCompletionAsync(
         string systemPrompt, 
         string userPrompt, 
         string base64Image, 
@@ -103,7 +103,7 @@ public class LlmClient
         }
     }
 
-    public async Task<string> GetCompletionAsync(
+    public virtual async Task<string> GetCompletionAsync(
         string systemPrompt, 
         string userPrompt, 
         string modelName, 

@@ -19,7 +19,7 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         _logger = logger;
     }
 
-    public async Task InitializeAsync(Guid jobId)
+    public virtual async Task InitializeAsync(Guid jobId)
     {
         _jobId = jobId;
         _logger.LogInformation("Initializing Playwright driver for Job {JobId}", _jobId);
@@ -52,7 +52,7 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         _page.SetDefaultNavigationTimeout(20000);
     }
 
-    public async Task NavigateAsync(string url)
+    public virtual async Task NavigateAsync(string url)
     {
         _logger.LogInformation("Job {JobId}: Navigating to {Url}", _jobId, url);
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
@@ -63,7 +63,7 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         });
     }
 
-    public async Task ClickSelectorAsync(string selector)
+    public virtual async Task ClickSelectorAsync(string selector)
     {
         _logger.LogInformation("Job {JobId}: Clicking selector '{Selector}'", _jobId, selector);
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
@@ -73,7 +73,7 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         await _page.ClickAsync(selector);
     }
 
-    public async Task ClickCoordinateAsync(double x, double y)
+    public virtual async Task ClickCoordinateAsync(double x, double y)
     {
         _logger.LogInformation("Job {JobId}: Clicking coordinates ({X}, {Y})", _jobId, x, y);
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
@@ -81,7 +81,7 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         await _page.Mouse.ClickAsync((float)x, (float)y);
     }
 
-    public async Task TypeTextAsync(string selector, string text)
+    public virtual async Task TypeTextAsync(string selector, string text)
     {
         _logger.LogInformation("Job {JobId}: Typing text into '{Selector}'", _jobId, selector);
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
@@ -92,7 +92,7 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         await _page.Locator(selector).PressSequentiallyAsync(text);
     }
 
-    public async Task ScrollAsync(string direction)
+    public virtual async Task ScrollAsync(string direction)
     {
         _logger.LogInformation("Job {JobId}: Scrolling {Direction}", _jobId, direction);
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
@@ -107,13 +107,13 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         }
     }
 
-    public async Task WaitAsync(int durationMs)
+    public virtual async Task WaitAsync(int durationMs)
     {
         _logger.LogInformation("Job {JobId}: Waiting for {DurationMs}ms", _jobId, durationMs);
         await Task.Delay(durationMs);
     }
 
-    public async Task<string> CaptureScreenshotAsync(string saveDirectory, int stepNumber)
+    public virtual async Task<string> CaptureScreenshotAsync(string saveDirectory, int stepNumber)
     {
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
 
@@ -131,32 +131,32 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         return fullPath;
     }
 
-    public async Task<string> GetPageContentAsync()
+    public virtual async Task<string> GetPageContentAsync()
     {
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
         return await _page.ContentAsync();
     }
 
-    public async Task<string> EvaluateScriptAsync(string script)
+    public virtual async Task<string> EvaluateScriptAsync(string script)
     {
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
         var result = await _page.EvaluateAsync<string>(script);
         return result ?? string.Empty;
     }
 
-    public Task<string> GetUrlAsync()
+    public virtual Task<string> GetUrlAsync()
     {
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
         return Task.FromResult(_page.Url);
     }
 
-    public async Task<string> GetTitleAsync()
+    public virtual async Task<string> GetTitleAsync()
     {
         if (_page == null) throw new InvalidOperationException("Driver not initialized.");
         return await _page.TitleAsync();
     }
 
-    public async Task CleanupAsync()
+    public virtual async Task CleanupAsync()
     {
         _logger.LogInformation("Cleaning up Playwright driver resources for Job {JobId}", _jobId);
         

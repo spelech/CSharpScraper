@@ -24,7 +24,7 @@ public class ScraperRunner
         _serviceProvider = serviceProvider;
     }
 
-    public async Task RunJobAsync(ScrapeJob job, ScrapeRequest request, CancellationToken cancellationToken)
+    public virtual async Task RunJobAsync(ScrapeJob job, ScrapeRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting scraping job {JobId} for URL {Url}", job.JobId, job.Url);
         

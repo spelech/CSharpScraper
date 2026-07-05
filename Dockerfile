@@ -4,11 +4,11 @@ WORKDIR /source
 
 # Copy csproj and restore dependencies for linux-x64
 COPY playwright-csharp-scraper.csproj ./
-RUN dotnet restore -r linux-x64
+RUN dotnet restore playwright-csharp-scraper.csproj -r linux-x64
 
 # Copy source and publish self-contained
 COPY . ./
-RUN dotnet publish -c Release -o /app -r linux-x64 --self-contained true --no-restore
+RUN dotnet publish playwright-csharp-scraper.csproj -c Release -o /app -r linux-x64 --self-contained true --no-restore
 
 # Stage 2: Final runtime image (Use pre-baked Playwright noble image with browsers)
 FROM mcr.microsoft.com/playwright:v1.49.1-noble AS final

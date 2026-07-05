@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CSharpScraper.Tests/CSharpScraper.Tests.csproj" />
+  <Project Path="playwright-csharp-scraper.csproj" />
+</Solution>
