@@ -14,12 +14,16 @@ services:
       - DEFAULT_LLM_BASE_URL=http://litellm:4000/v1
       - DEFAULT_LLM_API_KEY=sk-placeholder
       - DEFAULT_LLM_MODEL=gemini-3.5-flash
+      - BROWSER_WS_ENDPOINT=ws://browser-sockpuppet-chrome:3000
     networks:
       - net_webservices
+      - net_cloud
     ipc: host # Important for Chromium sandbox inside Docker to prevent out-of-memory crashes
     security_opt:
       - seccomp=unconfined # Optional: helps Chromium sandbox run in container without root privilege issues
 
 networks:
   net_webservices:
+    external: true
+  net_cloud:
     external: true

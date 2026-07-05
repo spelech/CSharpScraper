@@ -29,8 +29,8 @@ public class PlaywrightBrowserDriver : IExecutionDriver
         var wsEndpoint = Environment.GetEnvironmentVariable("BROWSER_WS_ENDPOINT");
         if (!string.IsNullOrEmpty(wsEndpoint))
         {
-            _logger.LogInformation("Job {JobId}: Connecting to remote browser at {WsEndpoint}", _jobId, wsEndpoint);
-            _browser = await _playwright.Chromium.ConnectAsync(wsEndpoint);
+            _logger.LogInformation("Job {JobId}: Connecting to remote browser over CDP at {WsEndpoint}", _jobId, wsEndpoint);
+            _browser = await _playwright.Chromium.ConnectOverCDPAsync(wsEndpoint);
         }
         else
         {
