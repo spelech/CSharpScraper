@@ -23,7 +23,7 @@ public class LlmClient
         _logger = logger;
     }
 
-    public virtual async Task<string> GetVisionCompletionAsync(
+    public virtual async Task<LlmResponse> GetVisionCompletionAsync(
         string systemPrompt, 
         string userPrompt, 
         string base64Image, 
@@ -94,7 +94,12 @@ public class LlmClient
                 throw new Exception("Received empty completion from Vision LLM API.");
             }
 
-            return text;
+            return new LlmResponse
+            {
+                Content = text,
+                PromptTokens = result?.Usage?.PromptTokens ?? 0,
+                CompletionTokens = result?.Usage?.CompletionTokens ?? 0
+            };
         }
         catch (Exception ex)
         {
@@ -103,7 +108,7 @@ public class LlmClient
         }
     }
 
-    public virtual async Task<string> GetCompletionAsync(
+    public virtual async Task<LlmResponse> GetCompletionAsync(
         string systemPrompt, 
         string userPrompt, 
         string modelName, 
@@ -170,7 +175,12 @@ public class LlmClient
                 throw new Exception("Received empty completion from LLM API.");
             }
 
-            return text;
+            return new LlmResponse
+            {
+                Content = text,
+                PromptTokens = result?.Usage?.PromptTokens ?? 0,
+                CompletionTokens = result?.Usage?.CompletionTokens ?? 0
+            };
         }
         catch (Exception ex)
         {
@@ -183,6 +193,9 @@ public class LlmClient
     {
         [JsonPropertyName("choices")]
         public List<Choice>? Choices { get; set; }
+
+        [JsonPropertyName("usage")]
+        public UsageInfo? Usage { get; set; }
     }
 
     private class Choice
@@ -196,4 +209,24 @@ public class LlmClient
         [JsonPropertyName("content")]
         public string? Content { get; set; }
     }
+
+    private class UsageInfo
+    {
+        [JsonPropertyName("prompt_tokens")]
+        public int PromptTokens { get; set; }
+
+        [JsonPropertyName("completion_tokens")]
+        public int CompletionTokens { get; set; }
+
+        [JsonPropertyName("total_tokens")]
+        public int TotalTokens { get; set; }
+    }
+}
+
+public class LlmResponse
+{
+    public required string Content { get; set; }
+    public int PromptTokens { get; set; }
+    public int CompletionTokens { get; set; }
+    public int TotalTokens => PromptTokens + CompletionTokens;
 }

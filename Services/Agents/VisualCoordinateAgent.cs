@@ -84,7 +84,8 @@ History of Actions Taken So Far:
 
 Look at the screenshot and history, reason about where to click or what to do next, and respond with your action.";
 
-        var rawResponse = await llmClient.GetVisionCompletionAsync(systemPrompt, userPrompt, base64Image, modelName, customBaseUrl, customApiKey, forceJson: true);
+        var llmResponse = await llmClient.GetVisionCompletionAsync(systemPrompt, userPrompt, base64Image, modelName, customBaseUrl, customApiKey, forceJson: true);
+        var rawResponse = llmResponse.Content;
         
         _logger.LogDebug("Vision LLM response for step {Step}: {Response}", stepNumber, rawResponse);
 
@@ -132,7 +133,9 @@ Look at the screenshot and history, reason about where to click or what to do ne
             StepNumber = stepNumber,
             Thought = decision.Thought ?? "No thought recorded.",
             Action = decision.Action,
-            ScreenshotPath = screenshotPath
+            ScreenshotPath = screenshotPath,
+            PromptTokens = llmResponse.PromptTokens,
+            CompletionTokens = llmResponse.CompletionTokens
         };
 
         return log;

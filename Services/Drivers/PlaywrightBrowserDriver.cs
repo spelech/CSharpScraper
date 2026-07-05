@@ -26,17 +26,27 @@ public class PlaywrightBrowserDriver : IExecutionDriver
 
         _playwright = await Playwright.CreateAsync();
         
-        _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        var wsEndpoint = Environment.GetEnvironmentVariable("BROWSER_WS_ENDPOINT");
+        if (!string.IsNullOrEmpty(wsEndpoint))
         {
-            Headless = true,
-            Args = new[] 
-            { 
-                "--no-sandbox", 
-                "--disable-setuid-sandbox", 
-                "--disable-blink-features=AutomationControlled",
-                "--disable-dev-shm-usage"
-            }
-        });
+            _logger.LogInformation("Job {JobId}: Connecting to remote browser at {WsEndpoint}", _jobId, wsEndpoint);
+            _browser = await _playwright.Chromium.ConnectAsync(wsEndpoint);
+        }
+        else
+        {
+            _logger.LogInformation("Job {JobId}: Launching local headless Chromium", _jobId);
+            _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = true,
+                Args = new[] 
+                { 
+                    "--no-sandbox", 
+                    "--disable-setuid-sandbox", 
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-dev-shm-usage"
+                }
+            });
+        }
 
         _context = await _browser.NewContextAsync(new BrowserNewContextOptions
         {

@@ -120,7 +120,9 @@ app.MapGet("/api/scrape/status/{id:guid}", (Guid id, [FromServices] ScraperJobSe
         LastAction = job.LastAction,
         StartedAt = job.StartedAt,
         CompletedAt = job.CompletedAt,
-        Error = job.Error
+        Error = job.Error,
+        TotalPromptTokens = job.TotalPromptTokens,
+        TotalCompletionTokens = job.TotalCompletionTokens
     });
 });
 
@@ -137,7 +139,9 @@ app.MapGet("/api/scrape/result/{id:guid}", (Guid id, [FromServices] ScraperJobSe
         JobId = job.JobId,
         Status = job.Status.ToString(),
         Data = job.ExtractedData,
-        Error = job.Error
+        Error = job.Error,
+        TotalPromptTokens = job.TotalPromptTokens,
+        TotalCompletionTokens = job.TotalCompletionTokens
     });
 });
 
@@ -158,7 +162,9 @@ app.MapGet("/api/scrape/logs/{id:guid}", (Guid id, [FromServices] ScraperJobServ
         Action = log.Action,
         ScreenshotPath = !string.IsNullOrEmpty(log.ScreenshotPath) 
             ? $"/screenshots/{id}/step_{log.StepNumber:D2}.png" 
-            : null
+            : null,
+        PromptTokens = log.PromptTokens,
+        CompletionTokens = log.CompletionTokens
     }).ToList();
 
     return Results.Ok(new JobLogsResponse

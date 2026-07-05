@@ -74,7 +74,7 @@ public class ScraperRunner
 
                 // --- DUAL-LOOP ARCHITECTURE: OUTER LOOP REASONING ---
                 // The Outer Loop acts as the "director", evaluates progress, and issues plans for the inner loop.
-                var outerDecision = await RunOuterLoopReasoningAsync(
+                var (outerDecision, outerPromptTokens, outerCompletionTokens) = await RunOuterLoopReasoningAsync(
                     job.Goal, 
                     step, 
                     driver, 
@@ -83,6 +83,9 @@ public class ScraperRunner
                     request.ApiKey, 
                     historySummary.ToString()
                 );
+
+                job.TotalPromptTokens += outerPromptTokens;
+                job.TotalCompletionTokens += outerCompletionTokens;
 
                 if (outerDecision.Status == "completed")
                 {
@@ -123,6 +126,9 @@ public class ScraperRunner
                     request.BaseUrl,
                     request.ApiKey
                 );
+
+                job.TotalPromptTokens += stepLog.PromptTokens;
+                job.TotalCompletionTokens += stepLog.CompletionTokens;
 
                 _logger.LogInformation("Job {JobId}: Step {Step} Action: {Action}", job.JobId, step, stepLog.Action);
                 job.LastAction = stepLog.Action.ToString();
@@ -191,7 +197,7 @@ public class ScraperRunner
         }
     }
 
-    private async Task<OuterLoopDecision> RunOuterLoopReasoningAsync(
+    private async Task<(OuterLoopDecision Decision, int PromptTokens, int CompletionTokens)> RunOuterLoopReasoningAsync(
         string mainGoal, 
         int stepNumber, 
         IExecutionDriver driver, 
@@ -232,19 +238,20 @@ Analyze the progress. Check if the goal is achieved. If not, what sub-goal shoul
 
         try
         {
-            var rawResponse = await _llmClient.GetCompletionAsync(systemPrompt, userPrompt, modelName, customBaseUrl, customApiKey, forceJson: true);
+            var llmResponse = await _llmClient.GetCompletionAsync(systemPrompt, userPrompt, modelName, customBaseUrl, customApiKey, forceJson: true);
+            var rawResponse = llmResponse.Content;
             var cleanJson = ExtractJsonBlock(rawResponse);
             var decision = JsonSerializer.Deserialize<OuterLoopDecision>(cleanJson, new JsonSerializerOptions 
             { 
                 PropertyNameCaseInsensitive = true 
             });
 
-            return decision ?? new OuterLoopDecision { Status = "continue", Instructions = mainGoal };
+            return (decision ?? new OuterLoopDecision { Status = "continue", Instructions = mainGoal }, llmResponse.PromptTokens, llmResponse.CompletionTokens);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in outer loop reasoning. Proceeding directly with main goal.");
-            return new OuterLoopDecision { Status = "continue", Instructions = mainGoal };
+            return (new OuterLoopDecision { Status = "continue", Instructions = mainGoal }, 0, 0);
         }
     }
 

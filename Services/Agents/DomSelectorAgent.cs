@@ -112,7 +112,8 @@ Current Page Elements:
 
 Reason about the current page, look at your history and goal, and decide the next action.";
 
-        var rawResponse = await llmClient.GetCompletionAsync(systemPrompt, userPrompt, modelName, customBaseUrl, customApiKey, forceJson: true);
+        var llmResponse = await llmClient.GetCompletionAsync(systemPrompt, userPrompt, modelName, customBaseUrl, customApiKey, forceJson: true);
+        var rawResponse = llmResponse.Content;
         
         _logger.LogDebug("LLM response for step {Step}: {Response}", stepNumber, rawResponse);
 
@@ -162,7 +163,9 @@ Reason about the current page, look at your history and goal, and decide the nex
         {
             StepNumber = stepNumber,
             Thought = decision.Thought ?? "No thought recorded.",
-            Action = decision.Action
+            Action = decision.Action,
+            PromptTokens = llmResponse.PromptTokens,
+            CompletionTokens = llmResponse.CompletionTokens
         };
     }
 

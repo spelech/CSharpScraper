@@ -33,7 +33,7 @@ public class LlmClientTests
     public async Task GetCompletionAsync_ShouldPostCorrectJsonAndReturnCompletionText()
     {
         // Arrange
-        var mockResponseJson = "{ \"choices\": [ { \"message\": { \"content\": \"{\\\"action\\\": \\\"wait\\\"}\" } } ] }";
+        var mockResponseJson = "{ \"choices\": [ { \"message\": { \"content\": \"{\\\"action\\\": \\\"wait\\\"}\" } } ], \"usage\": { \"prompt_tokens\": 10, \"completion_tokens\": 5, \"total_tokens\": 15 } }";
         
         _mockHttpMessageHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -68,7 +68,9 @@ public class LlmClientTests
         var result = await llmClient.GetCompletionAsync("sys_prompt", "user_prompt", "gemini-3.5-flash");
 
         // Assert
-        Assert.AreEqual("{\"action\": \"wait\"}", result);
+        Assert.AreEqual("{\"action\": \"wait\"}", result.Content);
+        Assert.AreEqual(10, result.PromptTokens);
+        Assert.AreEqual(5, result.CompletionTokens);
     }
 
     [TestMethod]

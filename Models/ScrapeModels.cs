@@ -40,6 +40,8 @@ public class ScrapeJob
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
     public string? Error { get; set; }
+    public int TotalPromptTokens { get; set; } = 0;
+    public int TotalCompletionTokens { get; set; } = 0;
     
     [JsonIgnore]
     public object? ExtractedData { get; set; }
@@ -100,6 +102,8 @@ public class ScrapeStepLog
     public required string Thought { get; set; }
     public required ScrapeAction Action { get; set; }
     public string? ScreenshotPath { get; set; }
+    public int PromptTokens { get; set; } = 0;
+    public int CompletionTokens { get; set; } = 0;
 }
 
 public class JobStatusResponse
@@ -114,6 +118,8 @@ public class JobStatusResponse
     public DateTime StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public string? Error { get; set; }
+    public int TotalPromptTokens { get; set; }
+    public int TotalCompletionTokens { get; set; }
 }
 
 public class JobResultResponse
@@ -122,6 +128,8 @@ public class JobResultResponse
     public string Status { get; set; } = string.Empty;
     public object? Data { get; set; }
     public string? Error { get; set; }
+    public int TotalPromptTokens { get; set; }
+    public int TotalCompletionTokens { get; set; }
 }
 
 public class JobLogsResponse

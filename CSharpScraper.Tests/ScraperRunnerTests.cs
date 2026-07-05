@@ -64,7 +64,7 @@ public class ScraperRunnerTests
             It.IsAny<string>(), 
             It.IsAny<string>(), 
             It.Is<bool>(b => b == true)
-        )).ReturnsAsync(mockOuterResponse);
+        )).ReturnsAsync(new LlmResponse { Content = mockOuterResponse, PromptTokens = 10, CompletionTokens = 5 });
 
         var runner = new ScraperRunner(_mockLogger.Object, _mockLlmClient.Object, _mockServiceProvider.Object);
 
@@ -74,6 +74,8 @@ public class ScraperRunnerTests
         // Assert
         Assert.AreEqual(JobStatus.Completed, job.Status);
         Assert.IsNotNull(job.ExtractedData);
+        Assert.AreEqual(10, job.TotalPromptTokens);
+        Assert.AreEqual(5, job.TotalCompletionTokens);
         
         var json = JsonSerializer.Serialize(job.ExtractedData);
         Assert.IsTrue(json.Contains("$9.99"));
@@ -102,7 +104,7 @@ public class ScraperRunnerTests
             It.IsAny<string>(), 
             It.IsAny<string>(), 
             It.Is<bool>(b => b == true)
-        )).ReturnsAsync(mockOuterResponse);
+        )).ReturnsAsync(new LlmResponse { Content = mockOuterResponse, PromptTokens = 8, CompletionTokens = 4 });
 
         var runner = new ScraperRunner(_mockLogger.Object, _mockLlmClient.Object, _mockServiceProvider.Object);
 
@@ -112,6 +114,8 @@ public class ScraperRunnerTests
         // Assert
         Assert.AreEqual(JobStatus.Failed, job.Status);
         Assert.AreEqual("site blocked by captcha", job.Error);
+        Assert.AreEqual(8, job.TotalPromptTokens);
+        Assert.AreEqual(4, job.TotalCompletionTokens);
         _mockDriver.Verify(d => d.CleanupAsync(), Times.Once);
     }
 
@@ -141,7 +145,8 @@ public class ScraperRunnerTests
         )).ReturnsAsync(() => 
         {
             callCount++;
-            return callCount == 1 ? mockOuterResponse1 : mockOuterResponse2;
+            var content = callCount == 1 ? mockOuterResponse1 : mockOuterResponse2;
+            return new LlmResponse { Content = content, PromptTokens = 15, CompletionTokens = 8 };
         });
 
         // Mock Inner Loop Agent response
@@ -150,7 +155,9 @@ public class ScraperRunnerTests
         {
             StepNumber = 1,
             Thought = "Let's click shop",
-            Action = action
+            Action = action,
+            PromptTokens = 20,
+            CompletionTokens = 10
         };
 
         _mockAgent.Setup(a => a.DecideNextActionAsync(
@@ -177,6 +184,13 @@ public class ScraperRunnerTests
         Assert.AreEqual(1, job.Steps.Count);
         Assert.AreEqual("Let's click shop", job.Steps[0].Thought);
         Assert.AreEqual("[data-pg-id='4']", job.Steps[0].Action.Selector);
+        
+        // Summation details:
+        // Step 1: Outer loop call (15 prompt, 8 completion) + Inner loop call (20 prompt, 10 completion)
+        // Step 2: Outer loop call (15 prompt, 8 completion) (completes the job before inner loop)
+        // Totals: Prompt = 15 + 20 + 15 = 50, Completion = 8 + 10 + 8 = 26
+        Assert.AreEqual(50, job.TotalPromptTokens);
+        Assert.AreEqual(26, job.TotalCompletionTokens);
 
         _mockDriver.Verify(d => d.ClickSelectorAsync("[data-pg-id='4']"), Times.Once);
         _mockDriver.Verify(d => d.CleanupAsync(), Times.Once);

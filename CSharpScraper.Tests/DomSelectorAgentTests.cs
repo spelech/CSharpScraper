@@ -50,7 +50,7 @@ public class DomSelectorAgentTests
             It.IsAny<string>(), 
             It.IsAny<string>(), 
             It.IsAny<bool>()
-        )).ReturnsAsync(llmResponse);
+        )).ReturnsAsync(new LlmResponse { Content = llmResponse, PromptTokens = 100, CompletionTokens = 50 });
 
         var agent = new DomSelectorAgent(_mockLogger.Object);
 
@@ -93,7 +93,7 @@ Some trailing text.
             It.IsAny<string>(), 
             It.IsAny<string>(), 
             It.IsAny<bool>()
-        )).ReturnsAsync(llmResponse);
+        )).ReturnsAsync(new LlmResponse { Content = llmResponse, PromptTokens = 80, CompletionTokens = 40 });
 
         var agent = new DomSelectorAgent(_mockLogger.Object);
 
