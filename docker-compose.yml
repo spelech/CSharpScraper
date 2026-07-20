@@ -9,19 +9,11 @@ services:
       - wud.tag.include=^latest$
       - wud.trigger.AUTOUPDATE.dryrun=false
 
-      # Reverse Proxy via Caddy
-      - caddy=scraper.wileyriley.com
-      - caddy.import_1=cloudflare
-      - caddy.reverse_proxy={{upstreams 8080}}
-
-      # TinyAuth Portal Auto-Discovery & Access Control
-      - tinyauth.apps.scraper.config.domain=scraper.wileyriley.com
-      - tinyauth.apps.scraper.oauth.groups=house_member,full_admin
-
       # Uptime Kuma Monitoring (AutoKuma)
-      - kuma.scraper.http.name=Playwright Scraper
-      - kuma.scraper.http.url=https://scraper.wileyriley.com/health
+      - kuma.scraper.http.name=Playwright Scraper MCP
+      - kuma.scraper.http.url=http://playwright-csharp-scraper:8080/health
       - kuma.scraper.http.group=Infrastructure
+
 
     restart: unless-stopped
     ports:
