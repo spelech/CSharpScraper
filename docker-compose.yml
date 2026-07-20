@@ -1,9 +1,28 @@
 services:
   playwright-csharp-scraper:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/spelech/csharpscraper:latest
     container_name: playwright-csharp-scraper
+    labels:
+      # WUD auto-update configurations
+      - wud.watch=true
+      - wud.registry=ghcr
+      - wud.tag.include=^latest$
+      - wud.trigger.AUTOUPDATE.dryrun=false
+
+      # Reverse Proxy via Caddy
+      - caddy=scraper.wileyriley.com
+      - caddy.import_1=cloudflare
+      - caddy.reverse_proxy={{upstreams 8080}}
+
+      # TinyAuth Portal Auto-Discovery & Access Control
+      - tinyauth.apps.scraper.config.domain=scraper.wileyriley.com
+      - tinyauth.apps.scraper.oauth.groups=house_member,full_admin
+
+      # Uptime Kuma Monitoring (AutoKuma)
+      - kuma.scraper.http.name=Playwright Scraper
+      - kuma.scraper.http.url=https://scraper.wileyriley.com/health
+      - kuma.scraper.http.group=Infrastructure
+
     restart: unless-stopped
     ports:
       - "8428:8080"
