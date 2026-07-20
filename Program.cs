@@ -61,9 +61,10 @@ var supportedModels = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 // Endpoints
 app.MapGet("/health", () => 
 {
-    var appVersion = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
+    var appVersion = CSharpScraper.Utils.AppVersion.Value;
     return Results.Ok(new { status = "ok", service = "CSharpScraper", appVersion, netVersion = "10.0" });
 });
+
 
 app.MapPost("/api/scrape/start", ([FromBody] ScrapeRequest request, [FromServices] ScraperJobService jobService, ILogger<Program> logger) =>
 {

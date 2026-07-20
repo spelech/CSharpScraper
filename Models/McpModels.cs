@@ -85,8 +85,9 @@ public class McpServerInfo
     public string Name { get; set; } = "playwright-csharp-scraper";
 
     [JsonPropertyName("version")]
-    public string Version { get; set; } = typeof(McpServerInfo).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
+    public string Version { get; set; } = CSharpScraper.Utils.AppVersion.Value;
 }
+
 
 
 public class McpListToolsResult
