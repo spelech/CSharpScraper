@@ -18,6 +18,7 @@ services:
     networks:
       - net_webservices
       - net_cloud
+      - net_mcp
     ipc: host # Important for Chromium sandbox inside Docker to prevent out-of-memory crashes
     security_opt:
       - seccomp=unconfined # Optional: helps Chromium sandbox run in container without root privilege issues
@@ -26,4 +27,6 @@ networks:
   net_webservices:
     external: true
   net_cloud:
+    external: true
+  net_mcp:
     external: true
