@@ -6,14 +6,28 @@ services:
       # WUD auto-update configurations
       - wud.watch=true
       - wud.registry=ghcr
-      - wud.tag.include=^latest$
+      - wud.tag.include=^\d+\.\d+\.\d+$
       - wud.trigger.AUTOUPDATE.dryrun=false
+
+      # Caddy Reverse Proxy & Auth
+      - caddy=scraper.wileyriley.com
+      - caddy.import_1=cloudflare
+      - caddy.import_2=tinyauth
+      - caddy.reverse_proxy={{upstreams 8080}}
+
+      # TinyAuth Portal Auto-Discovery & Access Control
+      - tinyauth.apps.scraper.config.domain=scraper.wileyriley.com
+      - tinyauth.apps.scraper.oauth.groups=full_admin
+      - "portal.scraper.name=C# Playwright Scraper"
+      - "portal.scraper.description=Agentic Playwright Scraper & Web Dashboard (MCP 2026-07-28)."
+      - "portal.scraper.category=LLMs"
+      - "portal.scraper.icon=fa-solid fa-spider"
+      - "portal.scraper.color=#0284c7"
 
       # Uptime Kuma Monitoring (AutoKuma)
       - kuma.scraper.http.name=Playwright Scraper MCP
-      - kuma.scraper.http.url=http://playwright-csharp-scraper:8080/health
+      - kuma.scraper.http.url=https://scraper.wileyriley.com/health
       - kuma.scraper.http.group=Infrastructure
-
 
     restart: unless-stopped
     ports:
