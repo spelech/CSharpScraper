@@ -63,7 +63,19 @@ public class McpInitializeParams
 public class McpInitializeResult
 {
     [JsonPropertyName("protocolVersion")]
-    public string ProtocolVersion { get; set; } = "2024-11-05";
+    public string ProtocolVersion { get; set; } = "2026-07-28";
+
+    [JsonPropertyName("capabilities")]
+    public McpServerCapabilities Capabilities { get; set; } = new();
+
+    [JsonPropertyName("serverInfo")]
+    public McpServerInfo ServerInfo { get; set; } = new();
+}
+
+public class McpDiscoverResult
+{
+    [JsonPropertyName("protocolVersion")]
+    public string ProtocolVersion { get; set; } = "2026-07-28";
 
     [JsonPropertyName("capabilities")]
     public McpServerCapabilities Capabilities { get; set; } = new();
@@ -76,7 +88,23 @@ public class McpServerCapabilities
 {
     [JsonPropertyName("tools")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public object? Tools { get; set; } = new { };
+    public object? Tools { get; set; } = new { listChanged = false };
+
+    [JsonPropertyName("prompts")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? Prompts { get; set; } = new { listChanged = false };
+
+    [JsonPropertyName("resources")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? Resources { get; set; } = new { subscribe = false, listChanged = false };
+
+    [JsonPropertyName("tasks")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? Tasks { get; set; } = new { };
+
+    [JsonPropertyName("completions")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? Completions { get; set; } = new { };
 }
 
 public class McpServerInfo
@@ -88,12 +116,20 @@ public class McpServerInfo
     public string Version { get; set; } = CSharpScraper.Utils.AppVersion.Value;
 }
 
-
+// --- Tools ---
 
 public class McpListToolsResult
 {
     [JsonPropertyName("tools")]
     public List<McpTool> Tools { get; set; } = new();
+
+    [JsonPropertyName("ttlMs")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? TtlMs { get; set; } = 300000;
+
+    [JsonPropertyName("cacheScope")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CacheScope { get; set; } = "public";
 }
 
 public class McpTool
@@ -157,5 +193,237 @@ public class McpContent
     public string Type { get; set; } = "text";
 
     [JsonPropertyName("text")]
-    public string Text { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Text { get; set; }
+
+    [JsonPropertyName("data")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Data { get; set; }
+
+    [JsonPropertyName("mimeType")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MimeType { get; set; }
+}
+
+// --- Prompts ---
+
+public class McpListPromptsResult
+{
+    [JsonPropertyName("prompts")]
+    public List<McpPrompt> Prompts { get; set; } = new();
+
+    [JsonPropertyName("ttlMs")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? TtlMs { get; set; } = 300000;
+}
+
+public class McpPrompt
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("arguments")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<McpPromptArgument>? Arguments { get; set; }
+}
+
+public class McpPromptArgument
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("required")]
+    public bool Required { get; set; } = false;
+}
+
+public class McpGetPromptParams
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("arguments")]
+    public Dictionary<string, string>? Arguments { get; set; }
+}
+
+public class McpGetPromptResult
+{
+    [JsonPropertyName("description")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("messages")]
+    public List<McpPromptMessage> Messages { get; set; } = new();
+}
+
+public class McpPromptMessage
+{
+    [JsonPropertyName("role")]
+    public string Role { get; set; } = "user";
+
+    [JsonPropertyName("content")]
+    public McpContent Content { get; set; } = new();
+}
+
+// --- Resources ---
+
+public class McpListResourcesResult
+{
+    [JsonPropertyName("resources")]
+    public List<McpResource> Resources { get; set; } = new();
+}
+
+public class McpResource
+{
+    [JsonPropertyName("uri")]
+    public string Uri { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("mimeType")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MimeType { get; set; }
+}
+
+public class McpListResourceTemplatesResult
+{
+    [JsonPropertyName("resourceTemplates")]
+    public List<McpResourceTemplate> ResourceTemplates { get; set; } = new();
+}
+
+public class McpResourceTemplate
+{
+    [JsonPropertyName("uriTemplate")]
+    public string UriTemplate { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("mimeType")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MimeType { get; set; }
+}
+
+public class McpReadResourceParams
+{
+    [JsonPropertyName("uri")]
+    public string Uri { get; set; } = string.Empty;
+}
+
+public class McpReadResourceResult
+{
+    [JsonPropertyName("contents")]
+    public List<McpResourceContents> Contents { get; set; } = new();
+}
+
+public class McpResourceContents
+{
+    [JsonPropertyName("uri")]
+    public string Uri { get; set; } = string.Empty;
+
+    [JsonPropertyName("mimeType")]
+    public string MimeType { get; set; } = "text/plain";
+
+    [JsonPropertyName("text")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Text { get; set; }
+
+    [JsonPropertyName("blob")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Blob { get; set; }
+}
+
+// --- Tasks Extension ---
+
+public class McpTaskParams
+{
+    [JsonPropertyName("taskId")]
+    public string TaskId { get; set; } = string.Empty;
+}
+
+public class McpTaskResult
+{
+    [JsonPropertyName("taskId")]
+    public string TaskId { get; set; } = string.Empty;
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+
+    [JsonPropertyName("currentStep")]
+    public int CurrentStep { get; set; }
+
+    [JsonPropertyName("maxSteps")]
+    public int MaxSteps { get; set; }
+
+    [JsonPropertyName("lastAction")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LastAction { get; set; }
+
+    [JsonPropertyName("error")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Error { get; set; }
+}
+
+// --- Argument Completion ---
+
+public class McpCompleteParams
+{
+    [JsonPropertyName("ref")]
+    public McpCompleteRef Ref { get; set; } = new();
+
+    [JsonPropertyName("argument")]
+    public McpCompleteArgument Argument { get; set; } = new();
+}
+
+public class McpCompleteRef
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "ref/prompt";
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+}
+
+public class McpCompleteArgument
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("value")]
+    public string Value { get; set; } = string.Empty;
+}
+
+public class McpCompleteResult
+{
+    [JsonPropertyName("completion")]
+    public McpCompletionValues Completion { get; set; } = new();
+}
+
+public class McpCompletionValues
+{
+    [JsonPropertyName("values")]
+    public List<string> Values { get; set; } = new();
+
+    [JsonPropertyName("total")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Total { get; set; }
+
+    [JsonPropertyName("hasMore")]
+    public bool HasMore { get; set; } = false;
 }

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Playwright Agentic Scraper Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">⚡</div>
+                <div class="brand-text">
+                    <h2>C# Scraper</h2>
+                    <span class="version-tag">v0.2.0 (MCP 2026-07-28)</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Dashboard
+                </button>
+                <button class="nav-item" data-tab="launch">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    New Job
+                </button>
+                <button class="nav-item" data-tab="mcp">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    MCP Inspector
+                </button>
+            </nav>
+
+            <div class="server-status">
+                <div class="status-indicator online"></div>
+                <div class="status-info">
+                    <span class="status-title">System Status</span>
+                    <span class="status-sub" id="net-version">.NET 10.0 • Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1 id="page-title">Jobs Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="refresh-btn">🔄 Refresh</button>
+                    <button class="btn btn-primary" id="new-scrape-header-btn">+ Start Scrape</button>
+                </div>
+            </header>
+
+            <!-- TAB 1: Dashboard / Jobs List -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Total Jobs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value text-accent" id="stat-running">0</div>
+                        <div class="stat-label">Active / Queued</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value text-success" id="stat-completed">0</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value text-danger" id="stat-failed">0</div>
+                        <div class="stat-label">Failed / Stopped</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Active & Recent Jobs</h3>
+                        <span class="auto-refresh-tag">Live Polling Enabled (2s)</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>Target URL</th>
+                                    <th>Goal</th>
+                                    <th>Status</th>
+                                    <th>Step</th>
+                                    <th>Tokens</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobs-tbody">
+                                <tr>
+                                    <td colspan="7" class="empty-row">Loading scraping jobs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: Launch New Scrape -->
+            <section id="tab-launch" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Configure Scrape Request</h3>
+                        <div class="mode-switch">
+                            <button class="mode-btn active" data-mode="single">Single URL</button>
+                            <button class="mode-btn" data-mode="compare">Parallel Compare</button>
+                            <button class="mode-btn" data-mode="discovery">SearXNG Discovery</button>
+                        </div>
+                    </div>
+
+                    <!-- Single Form -->
+                    <form id="scrape-form-single" class="scrape-form">
+                        <div class="form-group">
+                            <label for="url">Target URL</label>
+                            <input type="url" id="url" required placeholder="https://news.ycombinator.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="goal">Scrape Goal / Objective</label>
+                            <textarea id="goal" rows="3" required placeholder="Extract top 5 titles, links, and point counts..."></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="model">LLM Model</label>
+                                <select id="model">
+                                    <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Recommended)</option>
+                                    <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
+                                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                    <option value="gpt-4o">GPT-4o</option>
+                                    <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group col">
+                                <label for="maxSteps">Max Iteration Steps</label>
+                                <input type="number" id="maxSteps" value="10" min="1" max="30">
+                            </div>
+
+                            <div class="form-group col">
+                                <label for="agentType">Agent Mode</label>
+                                <select id="agentType">
+                                    <option value="dom" selected>DOM Selector (Fast & Reliable)</option>
+                                    <option value="visual">Visual Coordinate (Vision LLM)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">⚡ Start Scraping Task</button>
+                    </form>
+
+                    <!-- Compare Form -->
+                    <form id="scrape-form-compare" class="scrape-form hidden">
+                        <div class="form-group">
+                            <label for="compare-urls">Target URLs (One per line)</label>
+                            <textarea id="compare-urls" rows="4" required placeholder="https://www.target.com/p/item1&#10;https://www.meijer.com/shopping/item1"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="compare-goal">Comparison Objective</label>
+                            <textarea id="compare-goal" rows="2" required placeholder="Compare product name, price, and store availability..."></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="compare-model">LLM Model</label>
+                                <select id="compare-model">
+                                    <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash</option>
+                                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                </select>
+                            </div>
+                            <div class="form-group col">
+                                <label for="compare-maxSteps">Max Steps per URL</label>
+                                <input type="number" id="compare-maxSteps" value="5" min="1" max="20">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">🚀 Start Parallel Comparison</button>
+                    </form>
+
+                    <!-- Discovery Form -->
+                    <form id="scrape-form-discovery" class="scrape-form hidden">
+                        <div class="form-group">
+                            <label for="disc-query">Product Search Query</label>
+                            <input type="text" id="disc-query" required placeholder="Huy Fong Sriracha 17oz">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="disc-location">Location / Area</label>
+                            <input type="text" id="disc-location" placeholder="Schaumburg, IL">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">🔍 Discover & Compare Retailers</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 3: MCP Inspector & Sandbox -->
+            <section id="tab-mcp" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Model Context Protocol (MCP) Sandbox</h3>
+                        <span class="version-tag">Spec 2026-07-28 RC</span>
+                    </div>
+
+                    <div class="mcp-grid">
+                        <div class="mcp-card">
+                            <h4>🛠️ Exposed Tools (`tools/list`)</h4>
+                            <ul id="mcp-tools-list" class="mcp-list">Loading tools...</ul>
+                        </div>
+
+                        <div class="mcp-card">
+                            <h4>💬 Prompt Templates (`prompts/list`)</h4>
+                            <ul id="mcp-prompts-list" class="mcp-list">Loading prompts...</ul>
+                        </div>
+
+                        <div class="mcp-card">
+                            <h4>📂 Resource Templates (`resources/templates/list`)</h4>
+                            <ul id="mcp-resources-list" class="mcp-list">Loading templates...</ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Live Execution Drawer / Modal -->
+    <div id="job-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modal-job-title">Job Details</h3>
+                    <span id="modal-job-sub" class="modal-sub">ID: -</span>
+                </div>
+                <button id="modal-close-btn" class="modal-close">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Status Header -->
+                <div class="job-status-banner">
+                    <div class="banner-item">
+                        <span class="banner-label">Status</span>
+                        <span id="modal-status-badge" class="badge">Running</span>
+                    </div>
+                    <div class="banner-item">
+                        <span class="banner-label">Progress</span>
+                        <span id="modal-progress-text">Step 0 / 10</span>
+                    </div>
+                    <div class="banner-item">
+                        <span class="banner-label">Tokens</span>
+                        <span id="modal-tokens-text">P: 0 / C: 0</span>
+                    </div>
+                    <div class="banner-item">
+                        <button id="modal-stop-btn" class="btn btn-danger btn-sm">Stop Execution</button>
+                    </div>
+                </div>
+
+                <!-- Step Logs & Screenshots Grid -->
+                <div class="modal-grid">
+                    <div class="modal-col">
+                        <h4>Execution Logs</h4>
+                        <div id="modal-logs-timeline" class="logs-timeline">
+                            <div class="log-entry">Waiting for step logs...</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-col">
+                        <h4>Real-Time Step Screenshot</h4>
+                        <div class="screenshot-viewer">
+                            <img id="modal-screenshot-img" src="" alt="Screenshot" class="hidden">
+                            <div id="modal-screenshot-placeholder" class="placeholder-text">No screenshot captured yet</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Extracted Data -->
+                <div class="data-section">
+                    <h4>Extracted Data Result</h4>
+                    <pre id="modal-result-json" class="json-code">No extracted result data yet.</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

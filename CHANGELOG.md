@@ -6,6 +6,18 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
+## [0.2.0] - 2026-07-20
+
+### Added
+- **MCP 2026-07-28 RC Spec Support**: Upgraded MCP protocol implementation to support `2026-07-28` RC spec, including stateless headers (`Mcp-Method`, `Mcp-Name`), `server/discover` capability endpoint, and `ttlMs`/`cacheScope` caching headers.
+- **MCP Prompts (`prompts/list`, `prompts/get`)**: Exposed reusable prompt templates for e-commerce scraping, article summarization, and multi-retailer comparative pricing.
+- **MCP Resources & Resource Templates (`resources/list`, `resources/templates/list`, `resources/read`)**: Exposed active scrape jobs (`scraper://jobs/{jobId}`), step execution logs (`scraper://jobs/{jobId}/logs`), and live step screenshots (`scraper://jobs/{jobId}/screenshots/{stepNumber}`) as queryable MCP resources.
+- **MCP Tasks Extension (`tasks/get`, `tasks/cancel`)**: Integrated task handle management for long-running background scraping jobs.
+- **MCP Argument Completion (`completion/complete`)**: Added argument autocomplete support for prompt templates and resource parameters.
+- **Embedded Web Dashboard**: Built single-page web dashboard served directly from `wwwroot` for launching single/compare/discovery scrapes, inspecting real-time job execution logs, viewing live step screenshots, and exploring MCP capabilities interactively.
+
+---
+
 ## [0.1.0] - 2026-07-04
 
 ### Added

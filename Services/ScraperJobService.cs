@@ -269,4 +269,9 @@ Provide your output in STRICT JSON format matching this schema:
         }
         return text.Trim();
     }
+
+    public IEnumerable<ScrapeJob> GetAllJobs()
+    {
+        return _jobs.Values.Select(v => v.Job).OrderByDescending(j => j.StartedAt);
+    }
 }

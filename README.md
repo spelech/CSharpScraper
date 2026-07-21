@@ -4,6 +4,10 @@ A standalone, containerized, REST-API-driven web scraper microservice written in
 
 The microservice automates browser interaction and extracts structured data from dynamic websites using a **Single-Loop Agentic Architecture**. It leverages Playwright for headless automation and LLM completions to decide real-time browser actions (clicking, typing, scrolling, waiting) to accomplish a user's goal.
 
+### 🌟 Key Features (v0.2.0)
+- **Embedded Web Dashboard**: Access `http://localhost:8428` in your browser to launch jobs, inspect real-time progress bars, view step-by-step reasoning logs, preview live page screenshots, and test MCP capabilities.
+- **MCP Server Protocol (2026-07-28 RC Spec)**: Complete Model Context Protocol implementation supporting stateless requests (`Mcp-Method`), `server/discover`, **Tools**, **Prompts** (`prompts/list`, `prompts/get`), **Resources** (`scraper://jobs/{jobId}`, `scraper://jobs/{jobId}/logs`, `scraper://jobs/{jobId}/screenshots/{stepNumber}`), **Tasks Extension** (`tasks/get`, `tasks/cancel`), and **Argument Completions** (`completion/complete`).
+
 ---
 
 ## 🏗️ Architecture
