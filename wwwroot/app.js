@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Tab Navigation
+    // Navigation Handling
     const navItems = document.querySelectorAll('.nav-item');
     const tabContents = document.querySelectorAll('.tab-content');
     const pageTitle = document.getElementById('page-title');
@@ -8,6 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentModalJobId = null;
     let pollInterval = null;
+    let availablePrompts = [];
+
+    const pageTitles = {
+        'dashboard': 'Jobs Dashboard',
+        'launch': 'Start New Scrape',
+        'mcp-tools': 'MCP Tools (`tools/list`)',
+        'mcp-prompts': 'MCP Prompts (`prompts/list` & `prompts/get`)',
+        'mcp-resources': 'MCP Resources (`resources/read`)'
+    };
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -17,16 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tabContents.forEach(c => c.classList.remove('active'));
 
             item.classList.add('active');
-            document.getElementById(`tab-${targetTab}`).classList.add('active');
+            const targetContent = document.getElementById(`tab-${targetTab}`);
+            if (targetContent) targetContent.classList.add('active');
 
-            if (targetTab === 'dashboard') {
-                pageTitle.textContent = 'Jobs Dashboard';
-            } else if (targetTab === 'launch') {
-                pageTitle.textContent = 'Start New Scrape';
-            } else if (targetTab === 'mcp') {
-                pageTitle.textContent = 'MCP Inspector & Sandbox';
-                loadMcpData();
-            }
+            if (pageTitles[targetTab]) pageTitle.textContent = pageTitles[targetTab];
+
+            if (targetTab === 'mcp-tools') loadMcpTools();
+            else if (targetTab === 'mcp-prompts') loadMcpPrompts();
+            else if (targetTab === 'mcp-resources') loadMcpResources();
         });
     });
 
@@ -35,7 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     refreshBtn.addEventListener('click', () => {
-        fetchJobs();
+        const activeTab = document.querySelector('.nav-item.active')?.getAttribute('data-tab');
+        if (activeTab === 'dashboard') fetchJobs();
+        else if (activeTab === 'mcp-tools') loadMcpTools();
+        else if (activeTab === 'mcp-prompts') loadMcpPrompts();
+        else if (activeTab === 'mcp-resources') loadMcpResources();
     });
 
     // Form Mode Switcher
@@ -154,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/health');
             if (!res.ok) return;
 
-            // Fetch recent resources via MCP resources/list or standard endpoints
             const mcpRes = await fetch('/mcp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -185,10 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let failed = 0;
 
         for (const r of resources) {
-            // Extract jobId from scraper://jobs/{jobId}
             const jobId = r.uri.replace('scraper://jobs/', '');
-            
-            // Fetch detailed status for each
             try {
                 const statusRes = await fetch(`/api/scrape/status/${jobId}`);
                 if (!statusRes.ok) continue;
@@ -267,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentModalJobId) return;
 
         try {
-            // Status
             const statusRes = await fetch(`/api/scrape/status/${currentModalJobId}`);
             if (!statusRes.ok) return;
             const job = await statusRes.json();
@@ -279,14 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modal-progress-text').textContent = `Step ${job.currentStep} / ${job.maxSteps}`;
             document.getElementById('modal-tokens-text').textContent = `P: ${job.totalPromptTokens} / C: ${job.totalCompletionTokens}`;
 
-            // Logs
             const logsRes = await fetch(`/api/scrape/logs/${currentModalJobId}`);
             if (logsRes.ok) {
                 const logsData = await logsRes.json();
                 renderModalLogs(logsData.logs || []);
             }
 
-            // Results
             const resultRes = await fetch(`/api/scrape/result/${currentModalJobId}`);
             if (resultRes.ok) {
                 const resultData = await resultRes.json();
@@ -342,62 +346,248 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Load MCP Sandbox Data
-    async function loadMcpData() {
+    // --- TAB: MCP Tools ---
+    async function loadMcpTools() {
+        const container = document.getElementById('mcp-tools-container');
         try {
-            // Tools
-            const toolsRes = await fetch('/mcp', {
+            const res = await fetch('/mcp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })
             });
-            if (toolsRes.ok) {
-                const data = await toolsRes.json();
-                renderMcpItems('mcp-tools-list', data.result?.tools || [], t => `
-                    <div class="mcp-item-title">${t.name}</div>
-                    <div class="mcp-item-desc">${t.description}</div>
-                `);
+            if (res.ok) {
+                const data = await res.json();
+                const tools = data.result?.tools || [];
+                if (tools.length === 0) {
+                    container.innerHTML = '<div class="placeholder-text">No MCP tools registered.</div>';
+                    return;
+                }
+                container.innerHTML = tools.map(t => `
+                    <div class="mcp-card">
+                        <h4>⚡ ${t.name}</h4>
+                        <p class="tab-description">${t.description}</p>
+                        <div class="form-group">
+                            <label>Input Schema Properties:</label>
+                            <pre class="json-code">${JSON.stringify(t.inputSchema.properties, null, 2)}</pre>
+                        </div>
+                    </div>
+                `).join('');
             }
+        } catch (e) {
+            container.innerHTML = `<div class="placeholder-text">Error loading tools: ${e.message}</div>`;
+        }
+    }
 
-            // Prompts
-            const promptsRes = await fetch('/mcp', {
+    // --- TAB: MCP Prompts ---
+    async function loadMcpPrompts() {
+        const group = document.getElementById('prompts-list-group');
+        try {
+            const res = await fetch('/mcp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'prompts/list' })
             });
-            if (promptsRes.ok) {
-                const data = await promptsRes.json();
-                renderMcpItems('mcp-prompts-list', data.result?.prompts || [], p => `
-                    <div class="mcp-item-title">${p.name}</div>
-                    <div class="mcp-item-desc">${p.description}</div>
-                `);
-            }
+            if (res.ok) {
+                const data = await res.json();
+                availablePrompts = data.result?.prompts || [];
 
-            // Resource Templates
-            const resRes = await fetch('/mcp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'resources/templates/list' })
-            });
-            if (resRes.ok) {
-                const data = await resRes.json();
-                renderMcpItems('mcp-resources-list', data.result?.resourceTemplates || [], r => `
-                    <div class="mcp-item-title"><code>${r.uriTemplate}</code></div>
-                    <div class="mcp-item-desc">${r.description}</div>
-                `);
+                if (availablePrompts.length === 0) {
+                    group.innerHTML = '<div class="placeholder-text">No prompts declared.</div>';
+                    return;
+                }
+
+                group.innerHTML = availablePrompts.map((p, idx) => `
+                    <div class="prompt-item-card ${idx === 0 ? 'active' : ''}" data-name="${p.name}">
+                        <div class="mcp-item-title">${p.name}</div>
+                        <div class="mcp-item-desc">${p.description || ''}</div>
+                    </div>
+                `).join('');
+
+                document.querySelectorAll('.prompt-item-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('.prompt-item-card').forEach(c => c.classList.remove('active'));
+                        card.classList.add('active');
+                        selectPrompt(card.getAttribute('data-name'));
+                    });
+                });
+
+                if (availablePrompts.length > 0) {
+                    selectPrompt(availablePrompts[0].name);
+                }
             }
         } catch (e) {
-            console.error("Failed loading MCP sandbox:", e);
+            group.innerHTML = `<div class="placeholder-text">Error loading prompts: ${e.message}</div>`;
         }
     }
 
-    function renderMcpItems(elementId, items, formatter) {
-        const el = document.getElementById(elementId);
-        if (items.length === 0) {
-            el.innerHTML = '<li class="mcp-item">No items declared.</li>';
-            return;
+    function selectPrompt(promptName) {
+        const prompt = availablePrompts.find(p => p.name === promptName);
+        if (!prompt) return;
+
+        document.getElementById('prompt-active-title').textContent = prompt.name;
+        document.getElementById('prompt-active-desc').textContent = prompt.description || '';
+
+        const argsContainer = document.getElementById('prompt-dynamic-args');
+        const form = document.getElementById('prompt-exec-form');
+        form.classList.remove('hidden');
+
+        let argsHtml = '';
+        if (prompt.arguments && prompt.arguments.length > 0) {
+            prompt.arguments.forEach(arg => {
+                argsHtml += `
+                    <div class="form-group">
+                        <label>${arg.name} ${arg.required ? '<span style="color:var(--danger)">*</span>' : '(optional)'}</label>
+                        <input type="text" name="${arg.name}" ${arg.required ? 'required' : ''} placeholder="${arg.description || ''}">
+                    </div>
+                `;
+            });
+        } else {
+            argsHtml = '<p class="tab-description">This prompt does not require any parameters.</p>';
         }
-        el.innerHTML = items.map(item => `<li class="mcp-item">${formatter(item)}</li>`).join('');
+        argsContainer.innerHTML = argsHtml;
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const argsObj = {};
+            formData.forEach((val, key) => {
+                if (val) argsObj[key] = val;
+            });
+
+            try {
+                const res = await fetch('/mcp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 3,
+                        method: 'prompts/get',
+                        params: {
+                            name: prompt.name,
+                            arguments: argsObj
+                        }
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('prompt-output-box').classList.remove('hidden');
+                    document.getElementById('prompt-output-text').textContent = JSON.stringify(data.result, null, 2);
+                }
+            } catch (err) {
+                alert(`Error executing prompt: ${err.message}`);
+            }
+        };
+    }
+
+    // --- TAB: MCP Resources ---
+    async function loadMcpResources() {
+        const tplList = document.getElementById('res-templates-list');
+        const activeList = document.getElementById('res-active-list');
+
+        try {
+            // Resource Templates
+            const tplRes = await fetch('/mcp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jsonrpc: '2.0', id: 4, method: 'resources/templates/list' })
+            });
+            if (tplRes.ok) {
+                const data = await tplRes.json();
+                const templates = data.result?.resourceTemplates || [];
+                tplList.innerHTML = templates.map(t => `
+                    <li class="mcp-item res-uri-click" data-uri="${t.uriTemplate}">
+                        <div class="mcp-item-title"><code>${t.uriTemplate}</code></div>
+                        <div class="mcp-item-desc">${t.description}</div>
+                    </li>
+                `).join('');
+            }
+
+            // Active Resources
+            const actRes = await fetch('/mcp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jsonrpc: '2.0', id: 5, method: 'resources/list' })
+            });
+            if (actRes.ok) {
+                const data = await actRes.json();
+                const resources = data.result?.resources || [];
+                if (resources.length === 0) {
+                    activeList.innerHTML = '<li class="mcp-item">No active job resources. Start a job to see it listed!</li>';
+                } else {
+                    activeList.innerHTML = resources.map(r => `
+                        <li class="mcp-item res-uri-click" data-uri="${r.uri}">
+                            <div class="mcp-item-title">${r.name}</div>
+                            <div class="mcp-item-desc"><code>${r.uri}</code></div>
+                        </li>
+                    `).join('');
+                }
+            }
+
+            document.querySelectorAll('.res-uri-click').forEach(el => {
+                el.addEventListener('click', () => {
+                    const uri = el.getAttribute('data-uri');
+                    document.getElementById('res-uri-input').value = uri;
+                    if (!uri.includes('{')) {
+                        readResourceUri(uri);
+                    }
+                });
+            });
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    document.getElementById('res-read-btn').addEventListener('click', () => {
+        const uri = document.getElementById('res-uri-input').value.trim();
+        if (uri) readResourceUri(uri);
+    });
+
+    async function readResourceUri(uri) {
+        const container = document.getElementById('res-output-container');
+        container.innerHTML = '<div class="placeholder-text">Reading resource...</div>';
+
+        try {
+            const res = await fetch('/mcp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 6,
+                    method: 'resources/read',
+                    params: { uri: uri }
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.error) {
+                    container.innerHTML = `<div style="color:var(--danger)">Error: ${data.error.message}</div>`;
+                    return;
+                }
+
+                const contents = data.result?.contents || [];
+                if (contents.length === 0) {
+                    container.innerHTML = '<div class="placeholder-text">Empty content.</div>';
+                    return;
+                }
+
+                const item = contents[0];
+                if (item.mimeType === 'image/png' && item.blob) {
+                    container.innerHTML = `<img src="data:image/png;base64,${item.blob}" alt="Resource Image" class="res-image-preview">`;
+                } else if (item.text) {
+                    try {
+                        const parsed = JSON.parse(item.text);
+                        container.innerHTML = `<pre class="json-code">${JSON.stringify(parsed, null, 2)}</pre>`;
+                    } catch {
+                        container.innerHTML = `<pre class="json-code">${escapeHtml(item.text)}</pre>`;
+                    }
+                }
+            }
+        } catch (e) {
+            container.innerHTML = `<div style="color:var(--danger)">Network Error: ${e.message}</div>`;
+        }
     }
 
     // Utilities

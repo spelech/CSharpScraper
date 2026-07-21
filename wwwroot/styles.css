@@ -73,20 +73,30 @@ body {
 .nav-menu {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.35rem;
     flex: 1;
+}
+
+.nav-section-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-top: 1.25rem;
+    margin-bottom: 0.35rem;
+    padding-left: 0.75rem;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 0.85rem;
     border-radius: var(--radius);
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
     text-align: left;
@@ -162,6 +172,12 @@ body {
     display: block;
 }
 
+.tab-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
 /* Stat Cards */
 .stats-grid {
     display: grid;
@@ -204,7 +220,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .card-header h3 {
@@ -374,10 +390,10 @@ body {
     display: none !important;
 }
 
-/* MCP Playground */
+/* MCP Generic Lists & Cards */
 .mcp-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 1.5rem;
 }
 
@@ -404,9 +420,16 @@ body {
 
 .mcp-item {
     background: var(--bg-card);
-    padding: 0.75rem;
+    padding: 0.85rem;
     border-radius: 6px;
     border-left: 3px solid var(--accent-blue);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mcp-item:hover {
+    border-left-color: var(--accent-hover);
+    background: #283548;
 }
 
 .mcp-item-title {
@@ -417,6 +440,97 @@ body {
 .mcp-item-desc {
     color: var(--text-secondary);
     font-size: 0.8rem;
+}
+
+/* Prompt Runner Layout */
+.prompt-runner-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+}
+
+.prompt-list-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.prompt-item-card {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    padding: 0.85rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.prompt-item-card:hover, .prompt-item-card.active {
+    border-color: var(--accent-blue);
+    background: #162032;
+}
+
+.prompt-execution-col {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+}
+
+.prompt-desc-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+}
+
+.prompt-output-box {
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+}
+
+.prompt-output-box h5 {
+    margin-bottom: 0.5rem;
+    color: var(--accent-blue);
+}
+
+/* Resources Layout */
+.resources-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 1.25rem;
+}
+
+.res-col h4 {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.res-col.wide {
+    grid-column: span 1;
+}
+
+.res-reader-box {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+}
+
+.res-output-container {
+    margin-top: 1rem;
+    min-height: 250px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+.res-image-preview {
+    max-width: 100%;
+    border-radius: 6px;
 }
 
 /* Modal */

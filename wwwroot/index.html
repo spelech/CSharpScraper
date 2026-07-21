@@ -30,9 +30,20 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                     New Job
                 </button>
-                <button class="nav-item" data-tab="mcp">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                    MCP Inspector
+
+                <div class="nav-section-title">MCP SPECIFICATION</div>
+
+                <button class="nav-item" data-tab="mcp-tools">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    MCP Tools
+                </button>
+                <button class="nav-item" data-tab="mcp-prompts">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    MCP Prompts
+                </button>
+                <button class="nav-item" data-tab="mcp-resources">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    MCP Resources
                 </button>
             </nav>
 
@@ -203,28 +214,82 @@
                 </div>
             </section>
 
-            <!-- TAB 3: MCP Inspector & Sandbox -->
-            <section id="tab-mcp" class="tab-content">
+            <!-- TAB 3: MCP Tools -->
+            <section id="tab-mcp-tools" class="tab-content">
                 <div class="card">
                     <div class="card-header">
-                        <h3>Model Context Protocol (MCP) Sandbox</h3>
-                        <span class="version-tag">Spec 2026-07-28 RC</span>
+                        <h3>MCP Tools (`tools/list`)</h3>
+                        <span class="version-tag">2026-07-28 RC</span>
                     </div>
+                    <p class="tab-description">Tools exposed by this server for LLMs to call dynamically.</p>
+                    <div id="mcp-tools-container" class="mcp-grid">Loading tools...</div>
+                </div>
+            </section>
 
-                    <div class="mcp-grid">
-                        <div class="mcp-card">
-                            <h4>🛠️ Exposed Tools (`tools/list`)</h4>
-                            <ul id="mcp-tools-list" class="mcp-list">Loading tools...</ul>
+            <!-- TAB 4: MCP Prompts -->
+            <section id="tab-mcp-prompts" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>MCP Prompt Templates (`prompts/list` & `prompts/get`)</h3>
+                        <span class="version-tag">2026-07-28 RC</span>
+                    </div>
+                    <p class="tab-description">Select a prompt template, customize arguments, and generate or execute agent instructions.</p>
+                    
+                    <div class="prompt-runner-layout">
+                        <div class="prompt-selector-col">
+                            <h4>Prompt Templates</h4>
+                            <div id="prompts-list-group" class="prompt-list-group">Loading prompts...</div>
                         </div>
 
-                        <div class="mcp-card">
-                            <h4>💬 Prompt Templates (`prompts/list`)</h4>
-                            <ul id="mcp-prompts-list" class="mcp-list">Loading prompts...</ul>
+                        <div class="prompt-execution-col">
+                            <h4 id="prompt-active-title">Select a Prompt</h4>
+                            <p id="prompt-active-desc" class="prompt-desc-text">Choose a template on the left to configure arguments.</p>
+
+                            <form id="prompt-exec-form" class="scrape-form hidden">
+                                <div id="prompt-dynamic-args" class="form-group"></div>
+                                <button type="submit" class="btn btn-primary">💬 Generate & Get Prompt</button>
+                            </form>
+
+                            <div id="prompt-output-box" class="prompt-output-box hidden">
+                                <h5>Generated Prompt Message:</h5>
+                                <pre id="prompt-output-text" class="json-code"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: MCP Resources -->
+            <section id="tab-mcp-resources" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>MCP Resources & Templates (`resources/list`, `resources/templates/list` & `resources/read`)</h3>
+                        <span class="version-tag">2026-07-28 RC</span>
+                    </div>
+                    <p class="tab-description">Query live resources exposed by the scraper, including job data, step logs, and screenshots.</p>
+
+                    <div class="resources-layout">
+                        <div class="res-col">
+                            <h4>Resource Templates</h4>
+                            <ul id="res-templates-list" class="mcp-list">Loading templates...</ul>
                         </div>
 
-                        <div class="mcp-card">
-                            <h4>📂 Resource Templates (`resources/templates/list`)</h4>
-                            <ul id="mcp-resources-list" class="mcp-list">Loading templates...</ul>
+                        <div class="res-col">
+                            <h4>Active Resources (`resources/list`)</h4>
+                            <ul id="res-active-list" class="mcp-list">Loading resources...</ul>
+                        </div>
+
+                        <div class="res-col wide">
+                            <h4>Resource Content Inspector (`resources/read`)</h4>
+                            <div class="res-reader-box">
+                                <div class="form-row">
+                                    <input type="text" id="res-uri-input" placeholder="scraper://jobs/{jobId}" class="col">
+                                    <button id="res-read-btn" class="btn btn-secondary">Read Resource</button>
+                                </div>
+                                <div id="res-output-container" class="res-output-container">
+                                    <div class="placeholder-text">Enter a resource URI above or click an item on the left to read its content.</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
