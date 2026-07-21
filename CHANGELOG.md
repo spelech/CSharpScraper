@@ -6,7 +6,7 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
-## [0.2.0] - 2026-07-20
+## [1.4.0] - 2026-07-20
 
 ### Added
 - **MCP 2026-07-28 RC Spec Support**: Upgraded MCP protocol implementation to support `2026-07-28` RC spec, including stateless headers (`Mcp-Method`, `Mcp-Name`), `server/discover` capability endpoint, and `ttlMs`/`cacheScope` caching headers.

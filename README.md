@@ -6,13 +6,15 @@ The microservice automates browser interaction and extracts structured data from
 
 ---
 
-### 🌟 Key Features (v0.2.0)
+### 🌟 Key Features (v1.4.0)
 - **Embedded Web Dashboard**: Access `http://localhost:8428` in your browser to visually launch jobs, inspect real-time progress bars, view step-by-step reasoning logs, preview live page screenshots, and test MCP capabilities interactively.
 - **MCP Server Protocol (2026-07-28 RC Spec)**: Complete Model Context Protocol implementation supporting stateless HTTP requests (`Mcp-Method`), `server/discover`, **Tools**, **Prompts** (`prompts/list`, `prompts/get`), **Resources** (`scraper://jobs/{jobId}`, `scraper://jobs/{jobId}/logs`, `scraper://jobs/{jobId}/screenshots/{stepNumber}`), **Tasks Extension** (`tasks/get`, `tasks/cancel`), and **Argument Completions** (`completion/complete`).
 
 ---
 
 ## 💻 Web Dashboard (`http://localhost:8428`)
+
+![Web Dashboard UI](docs/images/web_dashboard.png)
 
 The microservice includes an embedded, dark-themed Single Page Application (SPA) served directly from ASP.NET Core (`wwwroot`).
 
