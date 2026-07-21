@@ -48,7 +48,8 @@ public class LlmClient
         client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         
-        client.DefaultRequestHeaders.Add("HTTP-Referer", "https://spelech/CSharpScraper");
+        var referer = _configuration["LLM_REFERER"] ?? "https://github.com/spelech/playwright-csharp-scraper";
+        client.DefaultRequestHeaders.Add("HTTP-Referer", referer);
         client.DefaultRequestHeaders.Add("X-Title", "Playwright CSharp Scraper");
 
         var userContent = new List<object>
@@ -134,7 +135,8 @@ public class LlmClient
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         
         // OpenRouter / LiteLLM headers
-        client.DefaultRequestHeaders.Add("HTTP-Referer", "https://spelech/CSharpScraper");
+        var referer = _configuration["LLM_REFERER"] ?? "https://github.com/spelech/playwright-csharp-scraper";
+        client.DefaultRequestHeaders.Add("HTTP-Referer", referer);
         client.DefaultRequestHeaders.Add("X-Title", "Playwright CSharp Scraper");
 
         var messages = new List<object>

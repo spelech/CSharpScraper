@@ -90,25 +90,52 @@ The orchestrator uses the LLM to analyze your product query and location, determ
 
 ---
 
+## ⚙️ Configuration
+
+The microservice is configured via environment variables. You can copy the template `.env.example` to `.env` to customize settings.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TZ` | Timezone setting for the microservice. | `America/Chicago` |
+| `DEFAULT_LLM_BASE_URL` | Base URL for OpenAI-compatible completions API. | `http://litellm:4000/v1` |
+| `DEFAULT_LLM_API_KEY` | Bearer API Token for the completions API. | `sk-placeholder` |
+| `DEFAULT_LLM_MODEL` | Default model used to guide agent decisions. | `gemini-3.5-flash` |
+| `LLM_REFERER` | Optional `HTTP-Referer` header for OpenRouter analytics. | `https://github.com/spelech/playwright-csharp-scraper` |
+| `BROWSER_WS_ENDPOINT` | WebSocket connection string (CDP) for remote browsers. If omitted, uses a container-isolated Chromium instance. | *(Empty - runs locally)* |
+| `SEARXNG_BASE_URL` | SearXNG instance endpoint for web query discovery. | `http://searxng:8080` |
+
+---
+
 ## 🛠️ Build & Run
 
+### Docker (Recommended)
+Docker is the easiest way to run the scraper as all Playwright browser dependencies and execution runtimes are pre-packaged.
+
+1. **Copy the environment template:**
+   ```bash
+   cp .env.example .env
+   ```
+2. **Configure your API keys** inside `.env`.
+3. **Start the service:**
+   ```bash
+   docker compose up -d
+   ```
+4. Access the service at `http://localhost:8428`.
+
 ### Locally (with .NET 10 SDK)
-1. Build the application:
+To run outside of docker:
+
+1. **Install .NET 10 SDK** on your machine.
+2. **Build the project:**
    ```bash
    dotnet build
    ```
-2. Install Playwright browser dependencies:
+3. **Install Playwright dependencies:**
    ```bash
    dotnet tool install --global Microsoft.Playwright.CLI
    playwright install
    ```
-3. Start the service:
+4. **Define your environment variables** or add them to your `appsettings.json`, then run:
    ```bash
    dotnet run
    ```
-
-### Docker
-Start the service via Docker Compose (maps port `8428`):
-```bash
-docker compose up --build -d
-```

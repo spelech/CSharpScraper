@@ -21,11 +21,12 @@ services:
     volumes:
       - ./temp_screenshots:/app/temp_screenshots
     environment:
-      - TZ=America/Chicago
-      - DEFAULT_LLM_BASE_URL=http://litellm:4000/v1
-      - DEFAULT_LLM_API_KEY=sk-placeholder
-      - DEFAULT_LLM_MODEL=gemini-3.5-flash
-      - BROWSER_WS_ENDPOINT=ws://browser-sockpuppet-chrome:3000
+      - TZ=${TZ:-America/Chicago}
+      - DEFAULT_LLM_BASE_URL=${DEFAULT_LLM_BASE_URL:-http://litellm:4000/v1}
+      - DEFAULT_LLM_API_KEY=${DEFAULT_LLM_API_KEY:-sk-placeholder}
+      - DEFAULT_LLM_MODEL=${DEFAULT_LLM_MODEL:-gemini-3.5-flash}
+      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser-sockpuppet-chrome:3000}
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-}
     networks:
       - net_webservices
       - net_cloud

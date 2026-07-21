@@ -47,7 +47,7 @@ public class LlmClientTests
                 Assert.AreEqual(HttpMethod.Post, request.Method);
                 Assert.AreEqual("Bearer", request.Headers.Authorization?.Scheme);
                 Assert.AreEqual("test-key", request.Headers.Authorization?.Parameter);
-                Assert.AreEqual("https://spelech/CSharpScraper", string.Join("", request.Headers.GetValues("HTTP-Referer")));
+                Assert.AreEqual("https://github.com/spelech/playwright-csharp-scraper", string.Join("", request.Headers.GetValues("HTTP-Referer")));
 
                 return new HttpResponseMessage
                 {
